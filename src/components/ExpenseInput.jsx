@@ -89,6 +89,13 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
       const categoryName = parseResponse.category || 'Other';
       const category_id = findCategoryIdByName(categoryName);
       
+      // Extract description: remove the amount from the text to get the item description
+      let description = text.trim();
+      // Remove the amount (first occurrence of number pattern)
+      description = description.replace(/^\d+(?:\.\d{2})?\s*/, '').trim();
+      // If no description remains, use category name
+      if (!description) description = categoryName;
+      
       // Determine kind (expense, borrowed, lended)
       let kind = 'expense';
       const textLower = text.toLowerCase();
@@ -99,6 +106,7 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
         input: text.trim(),
         amount,
         category: categoryName,
+        description,
         kind,
         confidence: parseResponse.confidence,
         reasoning: parseResponse.reasoning
@@ -109,7 +117,7 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
         kind,
         amount,
         category_id,
-        note: categoryName !== 'Other' ? categoryName : null,
+        note: description,
         original_text: text,
         metadata: { 
           parsed_from: 'llm',
