@@ -17,6 +17,10 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
   const [selectedExpenses, setSelectedExpenses] = useState(new Set());
   const [expandedCategories, setExpandedCategories] = useState({});
   const [categories, setCategories] = useState({});
+  const [budgetEditingTripId, setBudgetEditingTripId] = useState(null);
+  const [tripBudgetAmounts, setTripBudgetAmounts] = useState({});
+  const [budgetInputValues, setBudgetInputValues] = useState({});
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   const loadTripsWithSummary = useCallback(async () => {
     // Load categories
@@ -99,12 +103,15 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
       .not('trip_id', 'is', null);
 
     const budgetSums = {};
+    const budgetAmountsByTrip = {};
     if (budgetsData) {
       budgetsData.forEach(bud => {
         if (!budgetSums[bud.trip_id]) budgetSums[bud.trip_id] = 0;
         budgetSums[bud.trip_id] += Number(bud.amount || 0);
+        budgetAmountsByTrip[bud.trip_id] = Number(bud.amount || 0);
       });
     }
+    setTripBudgetAmounts(budgetAmountsByTrip);
 
     // Filter trips that overlap with the selected date range
     let filteredTrips = tripsData;
@@ -365,6 +372,74 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
     return colorPalette[(index >= 0 ? index : 0) % colorPalette.length];
   }
 
+  async function deleteCategory(tripId, categoryId, categoryName) {
+    if (!confirm(`Delete category "${categoryName}"? This will remove all expenses in this category from the trip.`)) return;
+    
+    try {
+      // Delete all expenses with this category for this trip
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('trip_id', tripId)
+        .eq('category_id', categoryId);
+      
+      if (error) {
+        console.error('Error deleting category expenses', error);
+        alert('Failed to delete category expenses');
+      } else {
+        await loadTripsWithSummary();
+      }
+    } catch (err) {
+      console.error('Unexpected error deleting category', err);
+      alert('Unexpected error while deleting category');
+    }
+  }
+
+  async function setTripBudget(tripId, budgetAmount) {
+    if (!budgetAmount || Number(budgetAmount) <= 0) {
+      alert('Please enter a valid budget amount');
+      return;
+    }
+
+    try {
+      // Check if budget already exists for this trip
+      const { data: existing } = await supabase
+        .from('budgets')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('trip_id', tripId)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        // Update existing budget
+        const { error } = await supabase
+          .from('budgets')
+          .update({ amount: Number(budgetAmount) })
+          .eq('id', existing[0].id);
+        if (error) throw error;
+      } else {
+        // Create new budget
+        const { error } = await supabase
+          .from('budgets')
+          .insert([{ 
+            user_id: user.id, 
+            trip_id: tripId, 
+            amount: Number(budgetAmount)
+          }]);
+        if (error) throw error;
+      }
+
+      // Update state and reload
+      setTripBudgetAmounts(prev => ({ ...prev, [tripId]: Number(budgetAmount) }));
+      setBudgetInputValues(prev => ({ ...prev, [tripId]: '' }));
+      setBudgetEditingTripId(null);
+      await loadTripsWithSummary();
+    } catch (err) {
+      console.error('Error setting budget', err);
+      alert('Failed to set budget');
+    }
+  }
+
   function groupExpensesByCategory(expenses) {
     const grouped = {};
     expenses.forEach(exp => {
@@ -563,7 +638,7 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                       </div>
 
                       {/* progress bar */}
-                      <div style={{ height: 10, background: '#f1f3f7', borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
+                      <div style={{ height: 10, background: '#f1f3f7', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
                         <div style={{
                           width: `${trip.spentPct}%`,
                           height: '100%',
@@ -572,9 +647,48 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                         }} />
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 'clamp(11px, 1.8vw, 12px)', color: '#777', flexWrap: 'wrap', gap: 4 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 'clamp(11px, 1.8vw, 12px)', color: '#777', flexWrap: 'wrap', gap: 4 }}>
                         <div>{trip.spentPct.toFixed(0)}% used</div>
                         <div>{trip.budget > 0 ? `${Math.max(0, (trip.budget - trip.spent)).toFixed(2)} left` : 'No budget set'}</div>
+                      </div>
+
+                      {/* Set/Edit Budget Button - Similar to Dashboard */}
+                      <div style={{ textAlign: 'center' }}>
+                        {budgetEditingTripId === trip.id ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
+                            <input 
+                              type="number"
+                              value={budgetInputValues[trip.id] || ''} 
+                              onChange={e => setBudgetInputValues(prev => ({ ...prev, [trip.id]: e.target.value }))} 
+                              placeholder="amount" 
+                              style={{ width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(12px, 2vw, 14px)' }} 
+                            />
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <button 
+                                className="btn" 
+                                onClick={() => setTripBudget(trip.id, budgetInputValues[trip.id])} 
+                                style={{ background: 'rgba(0,0,0,0.08)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer' }}
+                              >
+                                Save
+                              </button>
+                              <button 
+                                className="btn-ghost" 
+                                onClick={() => { setBudgetEditingTripId(null); setBudgetInputValues(prev => ({ ...prev, [trip.id]: String(trip.budget || '') })); }} 
+                                style={{ color: '#666', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer', border: '1px solid rgba(0,0,0,0.1)' }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button 
+                            className="btn" 
+                            onClick={() => { setBudgetEditingTripId(trip.id); setBudgetInputValues(prev => ({ ...prev, [trip.id]: String(trip.budget || '') })); }} 
+                            style={{ background: 'rgba(255,255,255,0.2)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(11px, 2vw, 14px)', fontWeight: 'bold', width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', cursor: 'pointer' }}
+                          >
+                            Set / Edit Budget
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -751,13 +865,42 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                                     ₹{Number(group.total || 0).toFixed(2)}
                                   </div>
                                 </div>
-                                <button
-                                  className="btn-ghost"
-                                  onClick={(e) => { e.stopPropagation(); toggleExpandCategory(trip.id, group.id); }}
-                                  style={{ color: color, fontSize: 13, fontWeight: 600 }}
-                                >
-                                  {isCatExpanded ? 'Hide' : `View (${group.rows.length})`}
-                                </button>
+                                <div style={{ display: 'flex', gap: 'clamp(6px, 1.5vw, 8px)', alignItems: 'center', flexShrink: 0 }}>
+                                  <button
+                                    className="btn-ghost"
+                                    onClick={(e) => { e.stopPropagation(); toggleExpandCategory(trip.id, group.id); }}
+                                    style={{ color: color, fontSize: 13, fontWeight: 600 }}
+                                  >
+                                    {isCatExpanded ? 'Hide' : `View (${group.rows.length})`}
+                                  </button>
+                                  {/* Delete category button */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteCategory(trip.id, group.id, group.name);
+                                    }}
+                                    style={{
+                                      background: 'rgba(244,67,54,0.15)',
+                                      color: '#e74c3c',
+                                      border: '1px solid #e74c3c',
+                                      borderRadius: '6px',
+                                      padding: 'clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 10px)',
+                                      cursor: 'pointer',
+                                      fontSize: 'clamp(14px, 2vw, 16px)',
+                                      transition: 'all 0.2s ease',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      minWidth: '32px',
+                                      flexShrink: 0
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(244,67,54,0.8)'; e.currentTarget.style.color = 'white'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(244,67,54,0.15)'; e.currentTarget.style.color = '#e74c3c'; }}
+                                    title="Delete category"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Expanded Expenses */}

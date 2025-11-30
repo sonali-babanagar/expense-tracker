@@ -601,9 +601,26 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
             <div style={{ fontSize: 'clamp(12px, 2vw, 14px)', color: 'black', marginBottom: 4 }}>💳 Spent</div>
             <div style={{ fontWeight: 'bold', fontSize: 'clamp(18px, 4vw, 24px)', color: '#f44336' }}>₹{Number(totalSpent || 0).toFixed(2)}</div>
           </div>
+
+          {/* Set/Edit Budget button - Below Spent */}
+          <div style={{ textAlign: 'center' }}>
+            {budgetEditing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
+                <input value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="amount" style={{ width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(12px, 2vw, 14px)' }} />
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <button className="btn" onClick={setBudget} style={{ background: 'rgba(0,0,0,0.08)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer' }}>Save</button>
+                  <button className="btn-ghost" onClick={() => { setBudgetEditing(false); setBudgetInput(String(budgetAmount || '')); }} style={{ color: '#666', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer', border: '1px solid rgba(0,0,0,0.1)' }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <button className="btn" onClick={() => setBudgetEditing(true)} style={{ background: 'rgba(255,255,255,0.8)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(11px, 2vw, 14px)', fontWeight: 'bold', width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', cursor: 'pointer' }}>
+                Set / Edit {format(new Date(monthYear + '-01'), 'MMMM')} Budget
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Progress Bar and Budget section */}
+        {/* Progress Bar section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2vw, 12px)', gridColumn: 'span 1' }}>
           {totalBudget > 0 && (
             <div style={{
@@ -640,21 +657,6 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
               </div>
             </div>
           )}
-          <div style={{ textAlign: 'center' }}>
-            {budgetEditing ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
-                <input value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="amount" style={{ width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.3)', fontSize: 'clamp(12px, 2vw, 14px)' }} />
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <button className="btn" onClick={setBudget} style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)' }}>Save</button>
-                  <button className="btn-ghost" onClick={() => { setBudgetEditing(false); setBudgetInput(String(budgetAmount || '')); }} style={{ color: 'white', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)' }}>Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <button className="btn" onClick={() => setBudgetEditing(true)} style={{ background: 'rgba(255,255,255,0.8)', color: 'black', border: '1px solid rgba(255,255,255,0.3)', fontSize: 'clamp(11px, 2vw, 14px)', fontWeight: 'bold', width: '100%', padding: 'clamp(6px, 1.5vw, 10px)' }}>
-                Set / Edit {format(new Date(monthYear + '-01'), 'MMMM')} Budget
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -684,44 +686,47 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
                 padding: 'clamp(12px, 2vw, 20px)',
                 background: `${color}15`
               }}>
-                <div>
-                  <div style={{ fontSize: 'clamp(14px, 2vw, 16px)', color: color, fontWeight: 'bold', marginBottom: '4px' }}>{group.name}</div>
-                  <div style={{ fontSize: 'clamp(20px, 5vw, 24px)', fontWeight: 'bold', color: color }}>₹{Number(group.total || 0).toFixed(2)}</div>
-                </div>
-                <div style={{ display: 'flex', gap: 'clamp(6px, 1.5vw, 8px)', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <button
-                    className="btn-ghost"
-                    onClick={() => toggleExpand(group.id)}
-                    style={{ color: color, fontSize: 'clamp(12px, 2vw, 14px)', padding: 'clamp(4px, 1vw, 8px) clamp(6px, 1.5vw, 10px)' }}
-                  >
-                    {expandedCategory === group.id ? 'Hide' : `View (${group.rows.length})`}
-                  </button>
-                  {/* Delete category button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteCategory(group.id, group.name);
-                    }}
-                    style={{
-                      background: 'rgba(244,67,54,0.15)',
-                      color: '#e74c3c',
-                      border: '1px solid #e74c3c',
-                      borderRadius: '6px',
-                      padding: 'clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 10px)',
-                      cursor: 'pointer',
-                      fontSize: 'clamp(14px, 2vw, 16px)',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minWidth: '32px'
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(244,67,54,0.8)'; e.currentTarget.style.color = 'white'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(244,67,54,0.15)'; e.currentTarget.style.color = '#e74c3c'; }}
-                    title="Delete category"
-                  >
-                    ✕
-                  </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'clamp(12px, 2vw, 16px)' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 'clamp(14px, 2vw, 16px)', color: color, fontWeight: 'bold', marginBottom: '4px' }}>{group.name}</div>
+                    <div style={{ fontSize: 'clamp(20px, 5vw, 24px)', fontWeight: 'bold', color: color }}>₹{Number(group.total || 0).toFixed(2)}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 'clamp(6px, 1.5vw, 8px)', alignItems: 'center', flexShrink: 0 }}>
+                    <button
+                      className="btn-ghost"
+                      onClick={() => toggleExpand(group.id)}
+                      style={{ color: color, fontSize: 'clamp(12px, 2vw, 14px)', padding: 'clamp(4px, 1vw, 8px) clamp(6px, 1.5vw, 10px)', whiteSpace: 'nowrap' }}
+                    >
+                      {expandedCategory === group.id ? 'Hide' : `View (${group.rows.length})`}
+                    </button>
+                    {/* Delete category button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteCategory(group.id, group.name);
+                      }}
+                      style={{
+                        background: 'rgba(244,67,54,0.15)',
+                        color: '#e74c3c',
+                        border: '1px solid #e74c3c',
+                        borderRadius: '6px',
+                        padding: 'clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 10px)',
+                        cursor: 'pointer',
+                        fontSize: 'clamp(14px, 2vw, 16px)',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '32px',
+                        flexShrink: 0
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(244,67,54,0.8)'; e.currentTarget.style.color = 'white'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(244,67,54,0.15)'; e.currentTarget.style.color = '#e74c3c'; }}
+                      title="Delete category"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
               </div>
 
