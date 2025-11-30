@@ -347,7 +347,10 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
               if (!isInRange) {
                 return prev.filter(r => r.id !== newRow.id);
               }
-              return prev.map(r => r.id === newRow.id ? newRow : r);
+              // Merge with existing row to preserve fields that might be missing in realtime payload
+              const existingRow = prev.find(r => r.id === newRow.id);
+              const mergedRow = existingRow ? { ...existingRow, ...newRow } : newRow;
+              return prev.map(r => r.id === newRow.id ? mergedRow : r);
             });
           }
         })
@@ -376,9 +379,11 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
   const saveBudget = useCallback(async (amount) => {
     if (!user?.id || isNaN(amount) || amount < 0) return;
 
+    // For casual expenses, get all months in the selected date range
+    // For trips, get all months from trip start to trip end
     const months = trip
       ? getMonthsInRange(new Date(trip.start_date), new Date(trip.end_date))
-      : [getMonthYearStr(new Date(startDateStr))];
+      : getMonthsInRange(new Date(startDateStr), new Date(endDateStr));
 
     try {
       // Delete old budgets for same months + trip context
@@ -416,7 +421,7 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
     } catch (e) {
       alert('Error saving budget');
     }
-  }, [user?.id, trip, startDateStr]);
+  }, [user?.id, trip, startDateStr, endDateStr]);
 
   const openEdit = useCallback((row) => {
     setEditModalRow({
@@ -424,13 +429,26 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
       amount: Number(row.amount || 0),
       category_id: row.category_id || null,
       note: row.note || '',
-      date: row.date ? new Date(row.date).toISOString().slice(0, 16) : new Date().toISOString().slice(0,16)
+      // Store original ISO date string so we can preserve the exact datetime when saving
+      _originalDate: row.date,
+      // Create datetime-local format by extracting date/time from ISO string
+      date: row.date ? row.date.substring(0, 16) : new Date().toISOString().substring(0, 16)
     });
   }, []);
 
   const submitEdit = useCallback(async (updatedRow) => {
-    const { id, ...updateData } = updatedRow;
-    updateData.date = updatedRow.date ? new Date(updatedRow.date).toISOString() : new Date().toISOString();
+    const { id, _originalDate, ...updateData } = updatedRow;
+    
+    // Convert datetime-local string to ISO string
+    // datetime-local format is "YYYY-MM-DDTHH:mm", convert to "YYYY-MM-DDTHH:mm:ss.000Z"
+    if (updatedRow.date) {
+      const dateTimeLocal = updatedRow.date; // e.g., "2025-11-30T14:30"
+      // Parse the local datetime and add seconds and milliseconds
+      const isoDate = dateTimeLocal + ':00.000Z'; // e.g., "2025-11-30T14:30:00.000Z"
+      // This assumes the datetime-local is already in UTC (which it should be since we extracted from ISO)
+      updateData.date = isoDate;
+    }
+    
     const { error } = await supabase
       .from('expenses')
       .update(updateData)
@@ -441,6 +459,7 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
     } else {
       setEditModalRow(null);
       // realtime will apply update; also patch local list to feel instant
+      // merge with original row to preserve all fields
       setExpenses(prev => prev.map(r => (r.id === id ? { ...r, ...updateData } : r)));
     }
   }, []);
