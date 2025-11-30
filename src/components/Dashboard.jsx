@@ -151,39 +151,30 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
 
   // Load total budget for the range
   const loadTotalBudget = useCallback(async () => {
-    let months;
+    if (!user?.id) return;
+
+    const months = trip
+      ? getMonthsInRange(new Date(trip.start_date), new Date(trip.end_date))
+      : [getMonthYearStr(new Date(startDateStr))];
+
+    let query = supabase
+      .from('budgets')
+      .select('amount')
+      .eq('user_id', user.id)
+      .in('month_year', months);
+
+    // THIS IS THE CORRECT WAY
     if (trip) {
-      const start = new Date(trip.start_date);
-      const end = new Date(trip.end_date);
-      months = getMonthsInRange(start, end);
+      query = query.eq('trip_id', trip.id);           // Trip budget
     } else {
-      const start = new Date(startDateStr + 'T00:00:00');
-      const end = new Date(endDateStr + 'T23:59:59');
-      months = getMonthsInRange(start, end);
+      query = query.is('trip_id', null);              // Casual budget – NULL
     }
-    if (months.length > 0) {
-      let query = supabase
-        .from('budgets')
-        .select('amount')
-        .eq('user_id', user.id)
-        .in('month_year', months);
-      if (trip) {
-        query = query.eq('trip_id', trip.id);
-      } else {
-        query = query.is('trip_id', null);
-      }
-      const { data: budDataAll, error: budErrAll } = await query;
-      if (budErrAll) {
-        console.error('total budget load error', budErrAll);
-        setTotalBudget(0);
-      } else {
-        const total = (budDataAll || []).reduce((sum, b) => sum + Number(b.amount || 0), 0);
-        setTotalBudget(total);
-      }
-    } else {
-      setTotalBudget(0);
-    }
-  }, [startDateStr, endDateStr, user.id, trip]);
+
+    const { data, error } = await query;
+
+    const total = (data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    setTotalBudget(total);
+  }, [user?.id, trip, startDateStr]);
 
   // Load expenses & budget for selected range
   const loadRange = useCallback(async () => {
@@ -379,29 +370,51 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
     };
   }, [user.id, trip, startDateStr, endDateStr]);
 
-  // Set budget function
-  const setBudget = useCallback(async () => {
-    if (!budgetInput || Number(budgetInput) <= 0) return;
-    const monthYear = trip ? getMonthYearStr(new Date(trip.start_date)) : getMonthYearStr(new Date(startDateStr));
-    const { data: existing } = await supabase
-      .from('budgets')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('month_year', monthYear)
-      .eq('trip_id', trip?.id || null)
-      .limit(1);
-    if (existing && existing.length > 0) {
-      const id = existing[0].id;
-      const { error } = await supabase.from('budgets').update({ amount: Number(budgetInput) }).eq('id', id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase.from('budgets').insert([{ user_id: user.id, month_year: monthYear, amount: Number(budgetInput), trip_id: trip?.id || null }]);
-      if (error) throw error;
+  // Save budget function - replaces old setBudget
+  const saveBudget = useCallback(async (amount) => {
+    if (!user?.id || isNaN(amount) || amount < 0) return;
+
+    const months = trip
+      ? getMonthsInRange(new Date(trip.start_date), new Date(trip.end_date))
+      : [getMonthYearStr(new Date(startDateStr))];
+
+    try {
+      // Delete old budgets for same months + trip context
+      let del = supabase
+        .from('budgets')
+        .delete()
+        .eq('user_id', user.id)
+        .in('month_year', months);
+
+      if (trip) {
+        del = del.eq('trip_id', trip.id);
+      } else {
+        del = del.is('trip_id', null);   // ← Correct for casual
+      }
+      await del;
+
+      // Insert new budget rows
+      const rows = months.map(m => ({
+        user_id: user.id,
+        trip_id: trip ? trip.id : null,   // null for casual
+        month_year: m,
+        amount: Number(amount)
+      }));
+
+      const { error } = await supabase.from('budgets').insert(rows);
+
+      if (error) {
+        alert('Failed to save budget');
+        console.error(error);
+      } else {
+        setTotalBudget(amount * months.length);
+        setBudgetEditing(false);
+        setBudgetInput('');
+      }
+    } catch (e) {
+      alert('Error saving budget');
     }
-    setBudgetAmount(Number(budgetInput));
-    setBudgetEditing(false);
-    loadTotalBudget();
-  }, [budgetInput, user.id, startDateStr, trip, loadTotalBudget]);
+  }, [user?.id, trip, startDateStr]);
 
   const openEdit = useCallback((row) => {
     setEditModalRow({
@@ -606,15 +619,56 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
           <div style={{ textAlign: 'center' }}>
             {budgetEditing ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
-                <input value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="amount" style={{ width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(12px, 2vw, 14px)' }} />
+                <input
+                  type="number"
+                  value={budgetInput}
+                  onChange={e => setBudgetInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const val = parseFloat(budgetInput);
+                      if (!isNaN(val) && val >= 0) saveBudget(val);
+                    }
+                    if (e.key === 'Escape') {
+                      setBudgetEditing(false);
+                      setBudgetInput('');
+                    }
+                  }}
+                  placeholder="0"
+                  autoFocus
+                  style={{ width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', border: '2px solid #667eea', fontSize: 'clamp(12px, 2vw, 14px)' }}
+                />
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <button className="btn" onClick={setBudget} style={{ background: 'rgba(255, 255, 255, 0.7)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer' }}>Save</button>
-                  <button className="btn-ghost" onClick={() => { setBudgetEditing(false); setBudgetInput(String(budgetAmount || '')); }} style={{background: 'rgba(255, 255, 255, 0.7)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer'  }}>Cancel</button>
+                  <button
+                    onClick={() => {
+                      const val = parseFloat(budgetInput);
+                      if (!isNaN(val) && val >= 0) {
+                        saveBudget(val);
+                      }
+                    }}
+                    style={{ background: 'rgba(255, 255, 255, 0.7)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setBudgetEditing(false);
+                      setBudgetInput('');
+                    }}
+                    style={{ background: 'rgba(255, 255, 255, 0.7)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             ) : (
-              <button className="btn" onClick={() => setBudgetEditing(true)} style={{ background: 'rgba(255,255,255,0.8)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(11px, 2vw, 14px)', fontWeight: 'bold', width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', cursor: 'pointer' }}>
-                Set / Edit Budget
+              <button
+                onClick={() => {
+                  setBudgetEditing(true);
+                  setBudgetInput(totalBudget.toString());
+                }}
+                style={{ background: 'rgba(255,255,255,0.8)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(11px, 2vw, 14px)', fontWeight: 'bold', width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                {totalBudget > 0 ? 'Edit Budget' : 'Set Budget'}
               </button>
             )}
           </div>
