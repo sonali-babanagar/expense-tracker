@@ -1199,6 +1199,9 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
               >
                 <option value=''>Other</option>
                 {Object.entries(categories).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                {editingExpense.category_id && !categories[editingExpense.category_id] && (
+                  <option value={editingExpense.category_id}>Unknown Category</option>
+                )}
               </select>
 
               <label style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(13px, 2vw, 14px)' }}>Note</label>

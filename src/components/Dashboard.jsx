@@ -143,11 +143,21 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
       if (error) {
         console.error('categories load error', error);
         setCategories([]);
-      } else setCategories(data || []);
+      } else {
+        console.log('Loaded categories:', data);
+        setCategories(data || []);
+      }
     }
     load();
     return () => { mounted = false; };
   }, []);
+
+  // Debug: log when categories change
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      console.log('Dashboard categories updated:', categories.map(c => `${c.id}:${c.name}`).join(', '));
+    }
+  }, [categories]);
 
   // Load total budget for the range
   const loadTotalBudget = useCallback(async () => {
@@ -448,6 +458,8 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
       // This assumes the datetime-local is already in UTC (which it should be since we extracted from ISO)
       updateData.date = isoDate;
     }
+    
+    console.log('Submitting edit:', { id, updateData, category_id: updateData.category_id });
     
     const { error } = await supabase
       .from('expenses')
@@ -989,6 +1001,9 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
               >
                 <option value=''>Other</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {editModalRow.category_id && !categories.find(c => c.id === editModalRow.category_id) && (
+                  <option value={editModalRow.category_id}>Unknown Category</option>
+                )}
               </select>
 
               <label style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(13px, 2vw, 14px)' }}>Note</label>
