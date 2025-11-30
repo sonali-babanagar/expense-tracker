@@ -472,19 +472,19 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
             placeholder="Trip name (e.g., Goa Vacation)"
             value={newTrip.name}
             onChange={e => setNewTrip(prev => ({ ...prev, name: e.target.value }))}
-            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
+            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', color: '#333' }}
           />
           <input
             type="date"
             value={newTrip.start}
             onChange={e => setNewTrip(prev => ({ ...prev, start: e.target.value }))}
-            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
+            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', color: '#333' }}
           />
           <input
             type="date"
             value={newTrip.end}
             onChange={e => setNewTrip(prev => ({ ...prev, end: e.target.value }))}
-            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
+            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', color: '#333' }}
           />
           <div style={{ display: 'flex', gap: 'clamp(8px, 2vw, 12px)', flexWrap: 'wrap' }}>
             <button className="btn" onClick={createTrip} style={{ flex: 1, minWidth: '100px', fontSize: 'clamp(12px, 2vw, 14px)' }}>Create</button>
