@@ -145,10 +145,11 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
           console.warn('Could not dispatch expense-added event', evErr);
         }
         
-        // Auto-close after 1 second to show the success message
+        // Auto-close after 1.5 seconds to show the success message then clear it
         setTimeout(() => {
+          setMessage(''); // Clear the message
           if (onSuccess) onSuccess();
-        }, 1000); 
+        }, 1500); 
       }
     } catch (err) {
       console.error('Error processing expense:', err);

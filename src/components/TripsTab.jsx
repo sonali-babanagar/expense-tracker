@@ -667,14 +667,14 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                               <button 
                                 className="btn" 
                                 onClick={() => setTripBudget(trip.id, budgetInputValues[trip.id])} 
-                                style={{ background: 'rgba(0,0,0,0.08)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer' }}
+                                style={{ background: 'rgba(179, 132, 228, 0.6)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer' }}
                               >
                                 Save
                               </button>
                               <button 
                                 className="btn-ghost" 
                                 onClick={() => { setBudgetEditingTripId(null); setBudgetInputValues(prev => ({ ...prev, [trip.id]: String(trip.budget || '') })); }} 
-                                style={{ color: '#666', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer', border: '1px solid rgba(0,0,0,0.1)' }}
+                                style={{ background: 'rgba(179, 132, 228, 0.6)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer' }}
                               >
                                 Cancel
                               </button>
@@ -684,7 +684,7 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                           <button 
                             className="btn" 
                             onClick={() => { setBudgetEditingTripId(trip.id); setBudgetInputValues(prev => ({ ...prev, [trip.id]: String(trip.budget || '') })); }} 
-                            style={{ background: 'rgba(255,255,255,0.2)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(11px, 2vw, 14px)', fontWeight: 'bold', width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', cursor: 'pointer' }}
+                            style={{ background: 'rgba(161, 101, 225, 0.77)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(11px, 2vw, 14px)', fontWeight: 'bold', width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', cursor: 'pointer' }}
                           >
                             Set / Edit Budget
                           </button>
@@ -697,7 +697,7 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                       <div style={{
                         padding: 'clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 10px)',
                         borderRadius: 8,
-                        background: isExpanded ? 'rgba(50,79,246,0.12)' : 'rgba(0,0,0,0.04)',
+                        background: isExpanded ? 'rgba(247, 245, 246, 1)' : 'rgba(0,0,0,0.04)',
                         fontSize: 'clamp(11px, 1.8vw, 13px)',
                         fontWeight: 700
                       }}>
