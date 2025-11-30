@@ -751,7 +751,7 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                             cursor: 'pointer'
                           }}
                         >
-                          + Add Expense for this Trip
+                          + Add Expense
                         </button>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
