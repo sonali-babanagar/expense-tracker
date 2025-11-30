@@ -576,7 +576,7 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
           </div>
         </div>
 
-        {/* Metrics section */}
+        {/* Metrics and Budget section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2vw, 12px)', gridColumn: 'span 1' }}>
           {/* Budget */}
           <div style={{
@@ -608,20 +608,18 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
                 <input value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="amount" style={{ width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(12px, 2vw, 14px)' }} />
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <button className="btn" onClick={setBudget} style={{ background: 'rgba(0,0,0,0.08)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer' }}>Save</button>
-                  <button className="btn-ghost" onClick={() => { setBudgetEditing(false); setBudgetInput(String(budgetAmount || '')); }} style={{ color: '#666', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer', border: '1px solid rgba(0,0,0,0.1)' }}>Cancel</button>
+                  <button className="btn" onClick={setBudget} style={{ background: 'rgba(255, 255, 255, 0.7)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer' }}>Save</button>
+                  <button className="btn-ghost" onClick={() => { setBudgetEditing(false); setBudgetInput(String(budgetAmount || '')); }} style={{background: 'rgba(255, 255, 255, 0.7)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)', borderRadius: '4px', padding: 'clamp(6px, 1.5vw, 10px)', cursor: 'pointer'  }}>Cancel</button>
                 </div>
               </div>
             ) : (
               <button className="btn" onClick={() => setBudgetEditing(true)} style={{ background: 'rgba(255,255,255,0.8)', color: 'black', border: '1px solid rgba(0,0,0,0.1)', fontSize: 'clamp(11px, 2vw, 14px)', fontWeight: 'bold', width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', cursor: 'pointer' }}>
-                Set / Edit {format(new Date(monthYear + '-01'), 'MMMM')} Budget
+                Set / Edit Budget
               </button>
             )}
           </div>
-        </div>
 
-        {/* Progress Bar section */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2vw, 12px)', gridColumn: 'span 1' }}>
+          {/* Progress Bar - Below Budget button */}
           {totalBudget > 0 && (
             <div style={{
               background: 'rgba(255,255,255,0.1)',
