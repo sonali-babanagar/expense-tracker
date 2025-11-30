@@ -262,7 +262,7 @@ export default function App() {
               </div>
             )}
 
-            <ExpenseInput user={user} trip_id={null} />
+            <ExpenseInput user={user} trip_id={null} startDateStr={startDateStr} endDateStr={endDateStr} expenseType="casual" />
             <Dashboard user={user} trip={null} startDateStr={startDateStr} endDateStr={endDateStr} onDateChange={(start, end) => { setStartDateStr(start); setEndDateStr(end); }} />
           </>
         )}
@@ -315,7 +315,7 @@ export default function App() {
 
             {currentTrip && (
               <>
-                <ExpenseInput user={user} trip_id={currentTrip.id} />
+                <ExpenseInput user={user} trip_id={currentTrip.id} startDateStr={startDateStr} endDateStr={endDateStr} expenseType="special" />
                 <Dashboard user={user} trip={currentTrip} startDateStr={startDateStr} endDateStr={endDateStr} onDateChange={(start, end) => { setStartDateStr(start); setEndDateStr(end); }} />
               </>
             )}

@@ -6,7 +6,7 @@ import { categorizeExpenseWithLLM } from '../lib/groqCategorizer';
  * ExpenseInput: sends parsed expense to DB and dispatches a window event
  * so Dashboard can update immediately (optimistic fallback).
  */
-export default function ExpenseInput({ user, trip_id = null, onSuccess = () => {}, expenseType = 'casual' }) {
+export default function ExpenseInput({ user, trip_id = null, onSuccess = () => {}, expenseType = 'casual', startDateStr = null, endDateStr = null }) {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]); // { id, name }
@@ -102,6 +102,16 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
       if (textLower.includes('borr')) kind = 'borrowed';
       else if (textLower.includes('len') || textLower.includes('lend')) kind = 'lended';
 
+      // Determine the expense date: use the selected 'from' date if available, otherwise use current date
+      let expenseDate = new Date().toISOString();
+      if (startDateStr) {
+        // Parse the startDateStr (format: YYYY-MM-DD) and convert to ISO string
+        const [startY, startM, startD] = startDateStr.split('-').map(Number);
+        if (startY && startM && startD) {
+          expenseDate = new Date(Date.UTC(startY, startM - 1, startD, 0, 0, 0)).toISOString();
+        }
+      }
+
       console.log('LLM Parsing & Categorization:', {
         input: text.trim(),
         amount,
@@ -125,7 +135,7 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
           expense_type: expenseType,
           confidence: parseResponse.confidence
         },
-        date: new Date().toISOString(),
+        date: expenseDate,
         ...(trip_id && { trip_id })
       };
 
