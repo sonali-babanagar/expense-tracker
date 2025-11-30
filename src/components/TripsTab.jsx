@@ -692,8 +692,8 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                       </div>
                     </div>
 
-                    {/* Right column: badges */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(6px, 1.5vw, 8px)', alignItems: 'flex-start' }}>
+                    {/* Row with Expand on left and Healthy on right */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'clamp(8px, 2vw, 12px)' }}>
                       <div style={{
                         padding: 'clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 10px)',
                         borderRadius: 8,
