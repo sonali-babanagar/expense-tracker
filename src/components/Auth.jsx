@@ -53,16 +53,17 @@ export default function Auth() {
   }
 
   return (
-    <div className="auth-card">
-      <h2>{isLogin ? 'Sign In' : 'Create Account'}</h2>
+    <div className="auth-card" style={{ maxWidth: 'min(420px, 90vw)', margin: 'clamp(20px, 5vw, 60px) auto', padding: 'clamp(14px, 3vw, 20px)' }}>
+      <h2 style={{ fontSize: 'clamp(1.5rem, 5vw, 1.8rem)', marginBottom: 'clamp(12px, 2vw, 16px)' }}>{isLogin ? 'Sign In' : 'Create Account'}</h2>
 
-      <form onSubmit={handleSubmit} className="auth-form">
+      <form onSubmit={handleSubmit} className="auth-form" style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2vw, 12px)' }}>
         <input
           type="email"
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          style={{ fontSize: '16px', padding: 'clamp(10px, 2vw, 12px)' }}
         />
 
         <input
@@ -71,24 +72,25 @@ export default function Auth() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required={!isLogin ? true : false}
+          style={{ fontSize: '16px', padding: 'clamp(10px, 2vw, 12px)' }}
         />
 
-        <button type="submit" className="btn" disabled={loading}>
+        <button type="submit" className="btn" disabled={loading} style={{ marginTop: 'clamp(4px, 1vw, 8px)', fontSize: 'clamp(13px, 2.2vw, 16px)', padding: 'clamp(10px, 2vw, 12px)', fontWeight: 'bold' }}>
           {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
         </button>
       </form>
 
-      <div style={{ marginTop: 8 }}>
-        <button className="link" onClick={() => setIsLogin(!isLogin)}>
+      <div style={{ marginTop: 'clamp(8px, 1.5vw, 12px)' }}>
+        <button className="link" onClick={() => setIsLogin(!isLogin)} style={{ fontSize: 'clamp(13px, 2.2vw, 14px)', padding: 'clamp(4px, 1vw, 8px)' }}>
           {isLogin ? 'Create an account' : 'Already have an account? Sign In'}
         </button>
       </div>
 
-      <div style={{ marginTop: 6 }}>
-        <button className="link" onClick={handleMagicLink}>Send magic link</button>
+      <div style={{ marginTop: 'clamp(6px, 1vw, 10px)' }}>
+        <button className="link" onClick={handleMagicLink} style={{ fontSize: 'clamp(13px, 2.2vw, 14px)', padding: 'clamp(4px, 1vw, 8px)' }}>Send magic link</button>
       </div>
 
-      {message && <p className="message">{message}</p>}
+      {message && <p className="message" style={{ fontSize: 'clamp(12px, 2vw, 14px)', marginTop: 'clamp(8px, 1.5vw, 12px)', padding: 'clamp(8px, 1.5vw, 10px)', textAlign: 'center', color: message.includes('successfully') ? '#4caf50' : '#e85a5a' }}>{message}</p>}
     </div>
   );
 }

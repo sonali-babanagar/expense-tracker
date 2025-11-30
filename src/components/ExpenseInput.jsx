@@ -165,18 +165,18 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
       borderRadius: '12px',
       boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
       overflow: 'hidden',
-      marginBottom: '20px'
+      marginBottom: 'clamp(12px, 2vw, 20px)'
     }}>
-      <div style={{ padding: '20px' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 'bold' }}>Add New Expense</h3>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ padding: 'clamp(14px, 3vw, 20px)' }}>
+        <h3 style={{ margin: '0 0 clamp(10px, 2vw, 16px) 0', fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 'bold' }}>Add New Expense</h3>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2vw, 12px)' }}>
           <input
-            placeholder='Type a natural sentence: "I spent 100 rupees on chips" or "100 Food"'
+            placeholder='e.g., "I spent 100 rupees on chips" or "100 Food"'
             value={text}
             onChange={e => setText(e.target.value)}
             style={{
               width: '100%',
-              padding: '14px 16px',
+              padding: 'clamp(10px, 2vw, 14px) clamp(10px, 2vw, 16px)',
               borderRadius: '8px',
               border: 'none',
               fontSize: '16px',
@@ -187,22 +187,24 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
             }}
             disabled={loading}
           />
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 'clamp(8px, 2vw, 12px)', alignItems: 'center', flexWrap: 'wrap' }}>
             <button 
               className="btn" 
               type="submit" 
               disabled={loading}
               style={{
                 flex: 1,
-                padding: '12px',
+                minWidth: '100px',
+                padding: 'clamp(10px, 2vw, 12px)',
                 borderRadius: '8px',
                 background: 'rgba(255, 255, 255, 0.2)',
                 color: 'white',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
-                fontSize: '16px',
+                fontSize: 'clamp(13px, 2.2vw, 16px)',
                 fontWeight: 'bold',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1
+                opacity: loading ? 0.7 : 1,
+                transition: 'all 0.2s ease'
               }}
             >
               {loading ? 'Adding...' : 'Add Expense'}
@@ -213,14 +215,15 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
               onClick={() => { setText(''); setMessage(''); }}
               disabled={loading}
               style={{
-                padding: '12px 16px',
+                padding: 'clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)',
                 borderRadius: '8px',
                 background: 'rgba(255, 255, 255, 0.1)',
                 color: 'white',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
-                fontSize: '16px',
+                fontSize: 'clamp(13px, 2.2vw, 16px)',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1
+                opacity: loading ? 0.7 : 1,
+                transition: 'all 0.2s ease'
               }}
             >
               Clear
@@ -228,22 +231,23 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
           </div>
           {message && (
             <div style={{
-              padding: '10px 14px',
+              padding: 'clamp(8px, 1.5vw, 10px) clamp(10px, 2vw, 14px)',
               borderRadius: '6px',
               textAlign: 'center',
               fontWeight: '500',
               background: message.includes('✓') ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)',
               color: message.includes('✓') ? '#4caf50' : '#f44336',
               border: `1px solid ${message.includes('✓') ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)'}`,
-              animation: 'fadeIn 0.3s ease-in'
+              animation: 'fadeIn 0.3s ease-in',
+              fontSize: 'clamp(12px, 2vw, 14px)'
             }}>
               {message}
             </div>
           )}
         </form>
 
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <small style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '12px' }}>
+        <div style={{ marginTop: 'clamp(10px, 2vw, 16px)', paddingTop: 'clamp(10px, 2vw, 16px)', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <small style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: 'clamp(11px, 1.8vw, 12px)' }}>
             Categories: {categories.length > 0 ? categories.map(c => c.name).join(', ') : 'loading...'}
           </small>
         </div>

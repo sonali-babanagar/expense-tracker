@@ -390,32 +390,32 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
   // ---------- RENDER (Original CSS/Structure Restored) ----------
   if (showCreate) {
     return (
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <h3>Create New Trip</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="card" style={{ marginBottom: 'clamp(12px, 2vw, 20px)' }}>
+        <h3 style={{ fontSize: 'clamp(1.1rem, 3vw, 1.3rem)' }}>Create New Trip</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2vw, 12px)' }}>
           <input
             placeholder="Trip name (e.g., Goa Vacation)"
             value={newTrip.name}
             onChange={e => setNewTrip(prev => ({ ...prev, name: e.target.value }))}
-            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }}
+            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
           />
           <input
             type="date"
             value={newTrip.start}
             onChange={e => setNewTrip(prev => ({ ...prev, start: e.target.value }))}
-            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }}
+            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
           />
           <input
             type="date"
             value={newTrip.end}
             onChange={e => setNewTrip(prev => ({ ...prev, end: e.target.value }))}
-            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }}
+            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
           />
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button className="btn" onClick={createTrip} style={{ flex: 1 }}>Create</button>
-            <button className="btn-ghost" onClick={() => { setShowCreate(false); setMessage(''); }} style={{ flex: 1 }}>Cancel</button>
+          <div style={{ display: 'flex', gap: 'clamp(8px, 2vw, 12px)', flexWrap: 'wrap' }}>
+            <button className="btn" onClick={createTrip} style={{ flex: 1, minWidth: '100px', fontSize: 'clamp(12px, 2vw, 14px)' }}>Create</button>
+            <button className="btn-ghost" onClick={() => { setShowCreate(false); setMessage(''); }} style={{ flex: 1, minWidth: '100px', fontSize: 'clamp(12px, 2vw, 14px)' }}>Cancel</button>
           </div>
-          {message && <p className="message" style={{ color: '#e74c3c' }}>{message}</p>}
+          {message && <p className="message" style={{ color: '#e74c3c', fontSize: 'clamp(12px, 2vw, 14px)' }}>{message}</p>}
         </div>
       </div>
     );
@@ -423,13 +423,13 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h3>Special Expenditures</h3>
-        <button className="btn" onClick={() => setShowCreate(true)}>New</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'clamp(12px, 2vw, 20px)', gap: '12px', flexWrap: 'wrap' }}>
+        <h3 style={{ fontSize: 'clamp(1.1rem, 3vw, 1.3rem)' }}>Special Expenditures</h3>
+        <button className="btn" onClick={() => setShowCreate(true)} style={{ fontSize: 'clamp(12px, 2vw, 14px)', padding: 'clamp(6px, 1.5vw, 10px) clamp(10px, 2vw, 16px)' }}>New</button>
       </div>
 
       {trips.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
+        <div className="card" style={{ textAlign: 'center', padding: 'clamp(24px, 3vw, 40px)', fontSize: 'clamp(13px, 2vw, 14px)' }}>
           <p>No trips yet. Create one to start tracking special expenses.</p>
         </div>
       ) : (
@@ -456,7 +456,7 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                     boxShadow: isExpanded ? '0 12px 30px rgba(50,79,246,0.12)' : '0 6px 18px rgba(10,10,10,0.06)',
                     overflow: 'hidden',
                     borderRadius: isExpanded ? '12px 12px 0px 0px' : 12,
-                    minHeight: 140,
+                    minHeight: 'auto',
                     display: 'flex',
                     flexDirection: 'column'
                   }}
@@ -468,35 +468,36 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                     display: 'flex',
                     alignItems: 'flex-start',
                     justifyContent: 'space-between',
-                    gap: 12,
-                    padding: '16px',
+                    gap: 'clamp(8px, 2vw, 12px)',
+                    padding: 'clamp(12px, 2vw, 16px)',
                     background: gradient,
                     color: 'white',
-                    position: 'relative'
+                    position: 'relative',
+                    flexWrap: 'wrap'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 2vw, 12px)', flex: 1, minWidth: 0 }}>
                       <div style={{
-                        width: 56, height: 56, borderRadius: 12, display: 'flex',
+                        width: 'clamp(40px, 10vw, 56px)', height: 'clamp(40px, 10vw, 56px)', borderRadius: 12, display: 'flex',
                         flexShrink: 0,
-                        alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.12)', fontSize: 20, fontWeight: '700'
+                        alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.12)', fontSize: 'clamp(16px, 3vw, 20px)', fontWeight: '700'
                       }}>
                         ✈️
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-                          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{trip.name}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                          <h3 style={{ margin: 0, fontSize: 'clamp(14px, 2.5vw, 16px)', fontWeight: 700 }}>{trip.name}</h3>
                         </div>
-                        <div style={{ fontSize: 12, opacity: 0.95 }}>
+                        <div style={{ fontSize: 'clamp(11px, 1.8vw, 12px)', opacity: 0.95 }}>
                           {format(new Date(trip.start_date), 'MMM dd, yyyy')} — {format(new Date(trip.end_date), 'MMM dd, yyyy')}
                         </div>
                       </div>
                     </div>
 
                     {/* Right side controls */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 2vw, 12px)', flexShrink: 0 }}>
                       {/* Expand/Collapse chevron */}
                       <div style={{
-                        fontSize: 20,
+                        fontSize: 'clamp(14px, 2.5vw, 20px)',
                         transition: 'transform 0.2s ease',
                         transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                         display: 'flex',
@@ -517,9 +518,9 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                           color: 'white',
                           border: '1px solid rgba(255,255,255,0.4)',
                           borderRadius: '6px',
-                          padding: '6px 10px',
+                          padding: 'clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 10px)',
                           cursor: 'pointer',
-                          fontSize: '16px',
+                          fontSize: 'clamp(14px, 2.5vw, 16px)',
                           transition: 'all 0.2s ease',
                           display: 'flex',
                           alignItems: 'center',
@@ -536,33 +537,33 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                   </div>
 
                   {/* Body */}
-                  <div style={{ padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'center', background: '#fff' }}>
+                  <div style={{ padding: 'clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)', display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2vw, 12px)', alignItems: 'stretch', background: '#fff' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 'clamp(8px, 2vw, 12px)', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
                         <div>
-                          <div style={{ fontSize: 13, color: '#666' }}>Budget</div>
-                          <div style={{ fontWeight: '700', fontSize: 15 }}>{formatMoney(trip.budget)}</div>
+                          <div style={{ fontSize: 'clamp(11px, 1.8vw, 13px)', color: '#666' }}>Budget</div>
+                          <div style={{ fontWeight: '700', fontSize: 'clamp(13px, 2.2vw, 15px)' }}>{formatMoney(trip.budget)}</div>
                         </div>
 
                         <div style={{ width: 1, height: 30, background: '#ddd' }} />
 
                         <div>
-                          <div style={{ fontSize: 13, color: '#666' }}>Spent</div>
-                          <div style={{ fontWeight: '700', fontSize: 15, color: '#c62828' }}>{formatMoney(trip.spent)}</div>
+                          <div style={{ fontSize: 'clamp(11px, 1.8vw, 13px)', color: '#666' }}>Spent</div>
+                          <div style={{ fontWeight: '700', fontSize: 'clamp(13px, 2.2vw, 15px)', color: '#c62828' }}>{formatMoney(trip.spent)}</div>
                         </div>
 
                         <div style={{ width: 1, height: 30, background: '#ddd' }} />
 
                         <div>
-                          <div style={{ fontSize: 13, color: '#666' }}>Balance</div>
-                          <div style={{ fontWeight: '700', fontSize: 15, color: trip.balance >= 0 ? '#2e7d32' : '#f44336' }}>
+                          <div style={{ fontSize: 'clamp(11px, 1.8vw, 13px)', color: '#666' }}>Balance</div>
+                          <div style={{ fontWeight: '700', fontSize: 'clamp(13px, 2.2vw, 15px)', color: trip.balance >= 0 ? '#2e7d32' : '#f44336' }}>
                             {formatMoney(trip.balance)}
                           </div>
                         </div>
                       </div>
 
                       {/* progress bar */}
-                      <div style={{ height: 10, background: '#f1f3f7', borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ height: 10, background: '#f1f3f7', borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
                         <div style={{
                           width: `${trip.spentPct}%`,
                           height: '100%',
@@ -571,31 +572,31 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                         }} />
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12, color: '#777' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 'clamp(11px, 1.8vw, 12px)', color: '#777', flexWrap: 'wrap', gap: 4 }}>
                         <div>{trip.spentPct.toFixed(0)}% used</div>
                         <div>{trip.budget > 0 ? `${Math.max(0, (trip.budget - trip.spent)).toFixed(2)} left` : 'No budget set'}</div>
                       </div>
                     </div>
 
                     {/* Right column: badges */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(6px, 1.5vw, 8px)', alignItems: 'flex-start' }}>
                       <div style={{
-                        padding: '6px 10px',
+                        padding: 'clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 10px)',
                         borderRadius: 8,
                         background: isExpanded ? 'rgba(50,79,246,0.12)' : 'rgba(0,0,0,0.04)',
-                        fontSize: 13,
+                        fontSize: 'clamp(11px, 1.8vw, 13px)',
                         fontWeight: 700
                       }}>
                         {isExpanded ? 'Expanded' : 'Expand'}
                       </div>
 
                       <div style={{
-                        padding: '6px 10px',
+                        padding: 'clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 10px)',
                         borderRadius: 999,
                         background: trip.balance >= 0 ? 'rgba(46,125,50,0.12)' : 'rgba(244,67,54,0.12)',
                         color: trip.balance >= 0 ? '#2e7d32' : '#f44336',
                         fontWeight: 700,
-                        fontSize: 13
+                        fontSize: 'clamp(11px, 1.8vw, 13px)'
                       }}>
                         {trip.balance >= 0 ? 'Healthy' : 'Over Budget'}
                       </div>

@@ -531,34 +531,34 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
   }
 
   const balanceTextColor = balance < 0 ? '#f44336' : '#2e7d32';
-
   const isMultipleSelected = selectedExpenses.size > 0;
   const buttonStyle = { fontSize: 12, padding: '4px 8px' };
   const disabledButtonStyle = { ...buttonStyle, opacity: 0.5, cursor: 'not-allowed' };
 
   return (
-    <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', padding: '20px' }}>
-      {/* Top bar */}
+    <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', padding: 'clamp(12px, 3vw, 20px)' }}>
+      {/* Top bar - responsive grid */}
       <div className="card" style={{
-        display: 'flex',
-        justifyContent: 'space-between',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: 'clamp(8px, 2vw, 12px)',
         alignItems: 'flex-start',
-        gap: 12,
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
-        padding: '20px',
+        padding: 'clamp(12px, 3vw, 20px)',
         borderRadius: '12px',
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
       }}>
-        <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0, fontSize: '24px' }}>Dashboard — {trip ? trip.name : `${startDisplay} to ${endDisplay}`}</h2>
-          <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
+        {/* Header and Balance section */}
+        <div style={{ gridColumn: 'span 1' }}>
+          <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 4vw, 1.8rem)' }}>Dashboard — {trip ? trip.name : `${startDisplay} to ${endDisplay}`}</h2>
+          <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 'clamp(11px, 2vw, 13px)' }}>
             {trip ? `Trip expenses from ${startDisplay} to ${endDisplay}` : 'Showing expenses in custom date range'}
           </div>
           {/* Added Balance display below the showing dates */}
           <div style={{
-            marginTop: 12,
-            padding: '12px',
+            marginTop: 'clamp(8px, 2vw, 12px)',
+            padding: 'clamp(8px, 2vw, 12px)',
             background: 'white',
             borderRadius: '8px',
             display: 'flex',
@@ -568,57 +568,58 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
             color: 'black',
             fontWeight: 'bold'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 24 }}>⚖️</span>
-              <span style={{fontSize: 20}}>Balance</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 'clamp(16px, 3vw, 24px)' }}>⚖️</span>
+              <span style={{ fontSize: 'clamp(14px, 2.5vw, 16px)' }}>Balance</span>
             </div>
-            <span style={{fontSize: 42, color: balanceTextColor}}>₹{Number(balance || 0).toFixed(2)}</span>
+            <span style={{ fontSize: 'clamp(24px, 6vw, 32px)', color: balanceTextColor }}>₹{Number(balance || 0).toFixed(2)}</span>
           </div>
         </div>
 
-        <div style={{ textAlign: 'right', minWidth: '400px' }}>
-          {/* Highlighted Metrics */}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'space-around', alignItems: 'center', marginBottom: 12 }}>
-            {/* Budget */}
-            <div style={{
-              textAlign: 'center',
-              padding: '16px 20px',
-              background: 'white',
-              borderRadius: '8px',
-              flex: 1,
-              position: 'relative'
-            }}>
-              <div style={{ fontSize: 14, color: 'black', marginBottom: 4 }}>💰 Budget (Period)</div>
-              <div style={{ fontWeight: 'bold', fontSize: '24px', color: '#1976d2' }}>₹{Number(totalBudget || 0).toFixed(2)}</div>
-            </div>
-
-            {/* Spent */}
-            <div style={{
-              textAlign: 'center',
-              padding: '16px 20px',
-              background: 'white',
-              borderRadius: '8px',
-              flex: 1,
-              position: 'relative'
-            }}>
-              <div style={{ fontSize: 14, color: 'black', marginBottom: 4 }}>💳 Spent</div>
-              <div style={{ fontWeight: 'bold', fontSize: '24px', color: '#f44336' }}>₹{Number(totalSpent || 0).toFixed(2)}</div>
-            </div>
+        {/* Metrics section */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2vw, 12px)', gridColumn: 'span 1' }}>
+          {/* Budget */}
+          <div style={{
+            textAlign: 'center',
+            padding: 'clamp(10px, 2vw, 16px)',
+            background: 'white',
+            borderRadius: '8px',
+            flex: 1,
+            position: 'relative'
+          }}>
+            <div style={{ fontSize: 'clamp(12px, 2vw, 14px)', color: 'black', marginBottom: 4 }}>💰 Budget (Period)</div>
+            <div style={{ fontWeight: 'bold', fontSize: 'clamp(18px, 4vw, 24px)', color: '#1976d2' }}>₹{Number(totalBudget || 0).toFixed(2)}</div>
           </div>
-            {/* Progress Bar for Spent vs Budget */}
+
+          {/* Spent */}
+          <div style={{
+            textAlign: 'center',
+            padding: 'clamp(10px, 2vw, 16px)',
+            background: 'white',
+            borderRadius: '8px'
+          }}>
+            <div style={{ fontSize: 'clamp(12px, 2vw, 14px)', color: 'black', marginBottom: 4 }}>💳 Spent</div>
+            <div style={{ fontWeight: 'bold', fontSize: 'clamp(18px, 4vw, 24px)', color: '#f44336' }}>₹{Number(totalSpent || 0).toFixed(2)}</div>
+          </div>
+        </div>
+
+        {/* Progress Bar and Budget section */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2vw, 12px)', gridColumn: 'span 1' }}>
           {totalBudget > 0 && (
             <div style={{
               background: 'rgba(255,255,255,0.1)',
               borderRadius: '6px',
-              padding: '8px',
-              marginBottom: 12
+              padding: 'clamp(8px, 2vw, 12px)',
+              flex: 1
             }}>
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                fontSize: 12,
+                flexWrap: 'wrap',
+                gap: 4,
+                fontSize: 'clamp(11px, 1.8vw, 12px)',
                 color: 'rgba(255,255,255,0.8)',
-                marginBottom: 4
+                marginBottom: 6
               }}>
                 <span>Progress: {progress.toFixed(1)}%</span>
                 <span style={{ color: progress > 100 ? '#f44336' : '#4caf50' }}>{progress > 100 ? 'Over Budget' : 'On Track'}</span>
@@ -639,15 +640,17 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
               </div>
             </div>
           )}
-          <div style={{ textAlign: 'center', marginBottom: 12 }}>
+          <div style={{ textAlign: 'center' }}>
             {budgetEditing ? (
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-                <input value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="amount" style={{ width: 100, padding: 6, borderRadius: '4px', border: '1px solid rgba(255,255,255,0.3)' }} />
-                <button className="btn" onClick={setBudget} style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}>Save</button>
-                <button className="btn-ghost" onClick={() => { setBudgetEditing(false); setBudgetInput(String(budgetAmount || '')); }} style={{ color: 'white' }}>Cancel</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
+                <input value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="amount" style={{ width: '100%', padding: 'clamp(6px, 1.5vw, 10px)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.3)', fontSize: 'clamp(12px, 2vw, 14px)' }} />
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <button className="btn" onClick={setBudget} style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)' }}>Save</button>
+                  <button className="btn-ghost" onClick={() => { setBudgetEditing(false); setBudgetInput(String(budgetAmount || '')); }} style={{ color: 'white', flex: 1, fontSize: 'clamp(12px, 2vw, 14px)' }}>Cancel</button>
+                </div>
               </div>
             ) : (
-              <button className="btn" onClick={() => setBudgetEditing(true)} style={{ background: 'rgba(255,255,255,0.8)', color: 'black', border: '1px solid rgba(255,255,255,0.3)' , fontSize: 15, fontWeight: 'bold'}}>
+              <button className="btn" onClick={() => setBudgetEditing(true)} style={{ background: 'rgba(255,255,255,0.8)', color: 'black', border: '1px solid rgba(255,255,255,0.3)', fontSize: 'clamp(11px, 2vw, 14px)', fontWeight: 'bold', width: '100%', padding: 'clamp(6px, 1.5vw, 10px)' }}>
                 Set / Edit {format(new Date(monthYear + '-01'), 'MMMM')} Budget
               </button>
             )}
@@ -655,8 +658,8 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
         </div>
       </div>
 
-      {/* Category cards - stacked vertically, one per row */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: '20px' }}>
+      {/* Category cards - responsive grid */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(12px, 2vw, 16px)', marginTop: 'clamp(16px, 3vw, 20px)' }}>
         {Object.values(grouped)
           .filter(group => Number(group.total || 0) > 0)
           .map((group) => {
@@ -676,20 +679,20 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
             >
               <div style={{
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '20px',
+                flexDirection: 'column',
+                gap: 'clamp(8px, 2vw, 12px)',
+                padding: 'clamp(12px, 2vw, 20px)',
                 background: `${color}15`
               }}>
                 <div>
-                  <div style={{ fontSize: 16, color: color, fontWeight: 'bold', marginBottom: '4px' }}>{group.name}</div>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: color }}>₹{Number(group.total || 0).toFixed(2)}</div>
+                  <div style={{ fontSize: 'clamp(14px, 2vw, 16px)', color: color, fontWeight: 'bold', marginBottom: '4px' }}>{group.name}</div>
+                  <div style={{ fontSize: 'clamp(20px, 5vw, 24px)', fontWeight: 'bold', color: color }}>₹{Number(group.total || 0).toFixed(2)}</div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 'clamp(6px, 1.5vw, 8px)', alignItems: 'center', flexWrap: 'wrap' }}>
                   <button
                     className="btn-ghost"
                     onClick={() => toggleExpand(group.id)}
-                    style={{ color: color }}
+                    style={{ color: color, fontSize: 'clamp(12px, 2vw, 14px)', padding: 'clamp(4px, 1vw, 8px) clamp(6px, 1.5vw, 10px)' }}
                   >
                     {expandedCategory === group.id ? 'Hide' : `View (${group.rows.length})`}
                   </button>
@@ -704,9 +707,9 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
                       color: '#e74c3c',
                       border: '1px solid #e74c3c',
                       borderRadius: '6px',
-                      padding: '6px 10px',
+                      padding: 'clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 10px)',
                       cursor: 'pointer',
-                      fontSize: '16px',
+                      fontSize: 'clamp(14px, 2vw, 16px)',
                       transition: 'all 0.2s ease',
                       display: 'flex',
                       alignItems: 'center',
@@ -723,16 +726,18 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
               </div>
 
               {expandedCategory === group.id && (
-                <div style={{ padding: '0 20px 20px' }}>
+                <div style={{ padding: 'clamp(12px, 2vw, 20px)' }}>
                   <div style={{
-                    padding: '10px 0',
+                    padding: 'clamp(8px, 1.5vw, 10px) 0',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     borderBottom: '1px solid #eee',
-                    marginBottom: 10
+                    marginBottom: 10,
+                    flexWrap: 'wrap',
+                    gap: 8
                   }}>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                       <button
                         onClick={() => selectAllInGroup(group.id)}
                         style={{
@@ -740,13 +745,13 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
                           background: 'none',
                           border: 'none',
                           cursor: 'pointer',
-                          fontSize: 12,
+                          fontSize: 'clamp(11px, 1.8vw, 12px)',
                           fontWeight: 'bold'
                         }}
                       >
                         {group.rows.every(r => selectedExpenses.has(r.id)) ? 'Deselect All' : 'Select All'}
                       </button>
-                      {selectedExpenses.size > 0 && <span style={{ color: '#666', fontSize: 12 }}>({selectedExpenses.size} selected)</span>}
+                      {selectedExpenses.size > 0 && <span style={{ color: '#666', fontSize: 'clamp(11px, 1.8vw, 12px)' }}>({selectedExpenses.size} selected)</span>}
                     </div>
                     {selectedExpenses.size > 0 && (
                       <button
@@ -756,14 +761,14 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
                           background: 'none',
                           border: 'none',
                           cursor: 'pointer',
-                          fontSize: 14
+                          fontSize: 'clamp(12px, 2vw, 14px)'
                         }}
                       >
                         Delete Selected
                       </button>
                     )}
                   </div>
-                  {group.rows.length === 0 && <div style={{ color: '#666', padding: '10px 0' }}>No expenses</div>}
+                  {group.rows.length === 0 && <div style={{ color: '#666', padding: 'clamp(8px, 1.5vw, 10px) 0', fontSize: 'clamp(12px, 2vw, 14px)' }}>No expenses</div>}
                   <ul className="recent-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {group.rows.map(r => (
                       <li
@@ -772,31 +777,32 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'flex-start',
-                          gap: 8,
-                          padding: '12px',
+                          gap: 'clamp(6px, 1.5vw, 8px)',
+                          padding: 'clamp(8px, 1.5vw, 12px)',
                           background: 'rgba(0,0,0,0.02)',
                           borderRadius: '8px',
-                          marginBottom: '8px'
+                          marginBottom: '8px',
+                          flexWrap: 'wrap'
                         }}
                       >
                         <input
                           type="checkbox"
                           checked={selectedExpenses.has(r.id)}
                           onChange={() => toggleSelect(r.id)}
-                          style={{ marginRight: 8, marginTop: 2 }}
+                          style={{ marginRight: 8, marginTop: 2, cursor: 'pointer', width: '16px', height: '16px' }}
                         />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                        <div style={{ flex: 1, minWidth: '150px' }}>
+                          <div style={{ fontWeight: 'bold', marginBottom: '4px', fontSize: 'clamp(13px, 2.2vw, 14px)' }}>
                             <strong>₹{Number(r.amount).toFixed(2)}</strong> — {r.note || r.original_text || r.kind}
                           </div>
-                          <div style={{ fontSize: 12, color: '#666' }}>{format(parseISO(r.date), 'MMM dd, yyyy HH:mm')}</div>
+                          <div style={{ fontSize: 'clamp(11px, 1.8vw, 12px)', color: '#666' }}>{format(parseISO(r.date), 'MMM dd, yyyy HH:mm')}</div>
                         </div>
-                        <div style={{ display: 'flex', gap: 6 }}>
+                        <div style={{ display: 'flex', gap: 'clamp(4px, 1vw, 6px)', flexWrap: 'wrap' }}>
                           <button
                             className="btn-ghost"
                             onClick={(e) => { e.stopPropagation(); openEdit(r); }}
                             disabled={isMultipleSelected}
-                            style={isMultipleSelected ? disabledButtonStyle : buttonStyle}
+                            style={{...isMultipleSelected ? disabledButtonStyle : buttonStyle, fontSize: 'clamp(11px, 1.8vw, 12px)', padding: 'clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 8px)' }}
                           >
                             Edit
                           </button>
@@ -804,7 +810,7 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
                             className="btn-ghost"
                             onClick={(e) => { e.stopPropagation(); deleteExpense(r); }}
                             disabled={isMultipleSelected}
-                            style={isMultipleSelected ? disabledButtonStyle : { ...buttonStyle, color: '#e74c3c' }}
+                            style={{...isMultipleSelected ? disabledButtonStyle : { ...buttonStyle, color: '#e74c3c' }, fontSize: 'clamp(11px, 1.8vw, 12px)', padding: 'clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 8px)' }}
                           >
                             Delete
                           </button>
@@ -821,7 +827,7 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
 
       {/* Lended and Borrowed cards */}
       {(lendedTotal > 0 || borrowedTotal > 0) && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(12px, 2vw, 16px)', marginTop: 'clamp(16px, 3vw, 20px)' }}>
           {lendedTotal > 0 && (
             <div className="card" style={{ 
               width: '100%', 
@@ -835,12 +841,12 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center', 
-                padding: '20px', 
+                padding: 'clamp(12px, 2vw, 20px)', 
                 background: 'rgba(46, 125, 50, 0.05)' 
               }}>
                 <div>
-                  <div style={{ fontSize: 16, color: '#2e7d32', fontWeight: 'bold', marginBottom: '4px' }}>Lended</div>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#2e7d32' }}>₹{Number(lendedTotal).toFixed(2)}</div>
+                  <div style={{ fontSize: 'clamp(14px, 2vw, 16px)', color: '#2e7d32', fontWeight: 'bold', marginBottom: '4px' }}>Lended</div>
+                  <div style={{ fontSize: 'clamp(20px, 5vw, 24px)', fontWeight: 'bold', color: '#2e7d32' }}>₹{Number(lendedTotal).toFixed(2)}</div>
                 </div>
               </div>
             </div>
@@ -858,12 +864,12 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center', 
-                padding: '20px', 
+                padding: 'clamp(12px, 2vw, 20px)', 
                 background: 'rgba(244, 67, 54, 0.05)' 
               }}>
                 <div>
-                  <div style={{ fontSize: 16, color: '#f44336', fontWeight: 'bold', marginBottom: '4px' }}>Borrowed</div>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#f44336' }}>₹{Number(borrowedTotal).toFixed(2)}</div>
+                  <div style={{ fontSize: 'clamp(14px, 2vw, 16px)', color: '#f44336', fontWeight: 'bold', marginBottom: '4px' }}>Borrowed</div>
+                  <div style={{ fontSize: 'clamp(20px, 5vw, 24px)', fontWeight: 'bold', color: '#f44336' }}>₹{Number(borrowedTotal).toFixed(2)}</div>
                 </div>
               </div>
             </div>
@@ -871,59 +877,60 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
         </div>
       )}
 
-      {/* Edit modal (simple inline overlay) */}
+      {/* Edit modal (simple inline overlay) - Responsive */}
       {editModalRow && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 60
+          alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '12px'
         }}>
           <div style={{ 
-            width: 520, 
+            width: '100%',
+            maxWidth: 520, 
             background: '#fff', 
-            padding: 24, 
+            padding: 'clamp(16px, 3vw, 24px)', 
             borderRadius: 12, 
             boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
             maxHeight: '90vh',
             overflowY: 'auto'
           }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>Edit expense</h3>
+            <h3 style={{ margin: '0 0 16px 0', color: '#333', fontSize: 'clamp(1.1rem, 3vw, 1.3rem)' }}>Edit expense</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <label style={{ fontWeight: 'bold', color: '#333' }}>Amount</label>
+              <label style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(13px, 2vw, 14px)' }}>Amount</label>
               <input 
                 type="number" 
                 value={editModalRow.amount} 
                 onChange={e => setEditModalRow(prev => ({ ...prev, amount: e.target.value }))} 
-                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }} 
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }} 
               />
 
-              <label style={{ fontWeight: 'bold', color: '#333' }}>Category</label>
+              <label style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(13px, 2vw, 14px)' }}>Category</label>
               <select 
                 value={editModalRow.category_id || ''} 
                 onChange={e => setEditModalRow(prev => ({ ...prev, category_id: e.target.value || null }))}
-                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }}
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
               >
                 <option value=''>Other</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
 
-              <label style={{ fontWeight: 'bold', color: '#333' }}>Note</label>
+              <label style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(13px, 2vw, 14px)' }}>Note</label>
               <input 
                 value={editModalRow.note || ''} 
                 onChange={e => setEditModalRow(prev => ({ ...prev, note: e.target.value }))} 
-                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }} 
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }} 
               />
 
-              <label style={{ fontWeight: 'bold', color: '#333' }}>Date & time</label>
+              <label style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(13px, 2vw, 14px)' }}>Date & time</label>
               <input 
                 type="datetime-local" 
                 value={editModalRow.date} 
                 onChange={e => setEditModalRow(prev => ({ ...prev, date: e.target.value }))} 
-                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }} 
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }} 
               />
 
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button className="btn-ghost" onClick={() => setEditModalRow(null)} style={{ padding: '8px 16px' }}>Cancel</button>
-                <button className="btn" onClick={() => submitEdit(editModalRow)} style={{ padding: '8px 16px', background: '#667eea', color: 'white' }}>Save</button>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="btn-ghost" onClick={() => setEditModalRow(null)} style={{ padding: '8px 16px', fontSize: 'clamp(12px, 2vw, 14px)', flex: 1, minWidth: '80px' }}>Cancel</button>
+                <button className="btn" onClick={() => submitEdit(editModalRow)} style={{ padding: '8px 16px', background: '#667eea', color: 'white', fontSize: 'clamp(12px, 2vw, 14px)', flex: 1, minWidth: '80px' }}>Save</button>
               </div>
             </div>
           </div>

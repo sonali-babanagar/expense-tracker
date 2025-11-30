@@ -95,24 +95,32 @@ export default function App() {
 
   return (
     <div className="container">
-      <header className="header">
-        <h1 style={{ margin: 0 }}>Expense Tracker</h1>
-        {/* Date Range Selector with Toggles and Sign Out */}
+      <header style={{
+        width: '100%',
+        marginBottom: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        padding: 'clamp(4px, 2vw, 8px)'
+      }}>
+        <h1 style={{ margin: 0, fontSize: 'clamp(1.5rem, 5vw, 2.5rem)' }}>Expense Tracker</h1>
+        
+        {/* Date Range Selector with Toggles and Sign Out - Responsive */}
         <div style={{
-          marginBottom: '16px',
+          marginBottom: '8px',
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: 'column',
           gap: '12px',
           backgroundColor: 'rgba(102, 126, 234, 0.1)',
-          padding: '12px 16px',
+          padding: 'clamp(8px, 2vw, 16px)',
           borderRadius: '8px',
-          borderLeft: '4px solid #667eea',
-          justifyContent: 'space-between'
+          borderLeft: '4px solid #667eea'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontWeight: '500', color: '#333' }}>Filter by date:</span>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px' }}>
+          {/* Date filters section */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+            <span style={{ fontWeight: '500', color: '#333', fontSize: 'clamp(12px, 2vw, 14px)' }}>Filter by date:</span>
+            <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'clamp(12px, 2vw, 14px)', flex: 1 }}>
                 From:
                 <input
                   type="date"
@@ -122,11 +130,13 @@ export default function App() {
                     padding: '6px 8px',
                     borderRadius: '4px',
                     border: '1px solid #ccc',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    flex: 1,
+                    minWidth: '120px'
                   }}
                 />
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'clamp(12px, 2vw, 14px)', flex: 1 }}>
                 To:
                 <input
                   type="date"
@@ -136,64 +146,71 @@ export default function App() {
                     padding: '6px 8px',
                     borderRadius: '4px',
                     border: '1px solid #ccc',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    flex: 1,
+                    minWidth: '120px'
                   }}
                 />
               </label>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <nav className="tabs" style={{ margin: 0, display: 'flex', alignItems: 'center', height: '40px' }}>
+
+          {/* Navigation and Sign Out section */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}>
+            <nav className="tabs" style={{ margin: 0, display: 'flex', alignItems: 'center', height: 'auto', gap: '0' }}>
+              <button
+                className={view === 'casual' ? 'active' : ''}
+                onClick={() => { setView('casual'); setCurrentTrip(null); }}
+                style={{ flex: 1, minWidth: '80px', padding: '8px 12px', fontSize: 'clamp(12px, 2vw, 14px)' }}
+              >
+                Casual
+              </button>
+              <button
+                className={view === 'trips' ? 'active' : ''}
+                onClick={() => setView('trips')}
+                style={{ flex: 1, minWidth: '80px', padding: '8px 12px', fontSize: 'clamp(12px, 2vw, 14px)', backgroundColor: view === 'trips' ? '#667eea' : 'white', color: view === 'trips' ? 'white' : 'inherit' }}
+              >
+                Special
+              </button>
+            </nav>
             <button
-              className={view === 'casual' ? 'active' : ''}
-              onClick={() => { setView('casual'); setCurrentTrip(null); }}
+              onClick={() => {
+                if (window.confirm('Are you sure you want to sign out?')) {
+                  supabase.auth.signOut();
+                }
+              }}
+              style={{
+                background: 'transparent',
+                color: '#667eea',
+                border: '1px solid #667eea',
+                padding: '8px 12px',
+                cursor: 'pointer',
+                fontSize: 'clamp(12px, 2vw, 14px)',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                borderRadius: '4px',
+                transition: 'all 0.2s ease',
+                minHeight: '40px',
+                lineHeight: '1',
+                flex: 1,
+                minWidth: 'clamp(80px, 15vw, 100px)'
+              }}
+              onMouseOver={e => {
+                e.target.style.background = '#667eea';
+                e.target.style.color = 'white';
+              }}
+              onMouseOut={e => {
+                e.target.style.background = 'transparent';
+                e.target.style.color = '#667eea';
+              }}
+              title="Sign Out"
             >
-              Casual
+              Sign out
+              <span style={{ fontSize: '14px' }}>→</span>
             </button>
-            <button
-              className={view === 'trips' ? 'active' : ''}
-              onClick={() => setView('trips')}
-              style={view === 'trips' ? { backgroundColor: '#667eea', color: 'white' } : {}}
-            >
-              Special
-            </button>
-          </nav>
-          <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to sign out?')) {
-                supabase.auth.signOut();
-              }
-            }}
-            style={{
-              background: 'transparent',
-              color: '#667eea',
-              border: '1px solid #667eea',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              borderRadius: '4px',
-              transition: 'all 0.2s ease',
-              height: '40px',
-              lineHeight: '1'
-            }}
-            onMouseOver={e => {
-              e.target.style.background = '#667eea';
-              e.target.style.color = 'white';
-            }}
-            onMouseOut={e => {
-              e.target.style.background = 'transparent';
-              e.target.style.color = '#667eea';
-            }}
-            title="Sign Out"
-          >
-            Sign out
-            <span style={{ fontSize: '16px' }}>→</span>
-          </button>
           </div>
         </div>
       </header>
