@@ -1,0 +1,30 @@
+:root{
+  --card-bg: #fff;
+  --bg: #f6f7fb;
+  --muted: #666;
+  --accent: #324ff6;
+}
+
+body { margin:0; font-family: Inter, system-ui, Arial; background: var(--bg); color: #111; }
+
+.container { max-width: 920px; margin: 28px auto; padding: 0 16px; }
+.header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px; }
+.card { background: var(--card-bg); padding: 16px; border-radius: 10px; box-shadow: 0 6px 18px rgba(30,30,60,0.06); margin-bottom: 12px; }
+.auth-card { max-width: 420px; margin: 60px auto; padding: 20px; background: var(--card-bg); border-radius: 10px; box-shadow: 0 6px 18px rgba(30,30,60,0.06); text-align:center; }
+.auth-form input { width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px; border: 1px solid #ddd; }
+.btn { padding: 10px 12px; border-radius: 8px; background: var(--accent); color: white; border: none; cursor: pointer; }
+.btn-ghost { padding: 6px 8px; border-radius: 8px; background: transparent; border: 1px solid #ddd; cursor: pointer; }
+.link { background: none; border: none; color: var(--accent); cursor: pointer; text-decoration: underline; }
+.message { color: #e85a5a; margin-top: 10px; }
+.center { text-align:center; margin-top:40px; }
+.recent-list { list-style:none; padding:0; margin:0; }
+.recent-list li { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+.muted { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+.tabs { display: flex; gap: 0; margin-bottom: 20px; }
+.tabs button { padding: 8px 16px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 6px; margin-right: -1px; }
+.tabs button.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+.trip-card { cursor: pointer; transition: box-shadow 0.2s; }
+.trip-card:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+.summary { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; color: var(--muted); }

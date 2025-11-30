@@ -1,0 +1,937 @@
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+
+/**
+ * Dashboard with:
+ * - Top bar: budget, spent, balance (highlighted with icons and progress)
+ * - Category cards showing totals for selected date range (one per row, with colors)
+ * - Expand per-category expenses list with edit/delete
+ * - Set budget for the month of the start date
+ *
+ * Notes:
+ * - Assumes tables: expenses (category_id -> categories.id), categories, budgets
+ * - Uses realtime + window 'expense-added' fallback (ExpenseInput dispatches event)
+ */
+
+function getMonthYearStr(date = new Date()) {
+  return format(date, 'yyyy-MM');
+}
+
+function getMonthsInRange(start, end) {
+  const months = [];
+  let current = new Date(start.getFullYear(), start.getMonth(), 1);
+  const endMonthStart = new Date(end.getFullYear(), end.getMonth(), 1);
+  while (current <= endMonthStart) {
+    months.push(format(current, 'yyyy-MM'));
+    current.setMonth(current.getMonth() + 1);
+  }
+  return months;
+}
+
+export default function Dashboard({ user, trip = null, startDateStr: propStartDate, endDateStr: propEndDate, onDateChange }) {
+  const [categories, setCategories] = useState([]); // {id, name}
+  const [expenses, setExpenses] = useState([]); // all expenses for range
+  const [grouped, setGrouped] = useState({}); // { categoryIdOrName: { total, rows: [] } }
+  const [lendedTotal, setLendedTotal] = useState(0);
+  const [borrowedTotal, setBorrowedTotal] = useState(0);
+  const [selectedExpenses, setSelectedExpenses] = useState(new Set());
+  const [loading, setLoading] = useState(false);
+  const [budgetAmount, setBudgetAmount] = useState(0);
+  const [totalBudget, setTotalBudget] = useState(0);
+  const [budgetEditing, setBudgetEditing] = useState(false);
+  const [budgetInput, setBudgetInput] = useState('');
+  const channelRef = useRef(null);
+  const startIsoRef = useRef();
+  const endIsoRef = useRef();
+
+  // Use props for dates if available (from App.jsx), otherwise use trip or default dates
+  const startDateStr = propStartDate || (trip ? format(new Date(trip.start_date), 'yyyy-MM-dd') : format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const endDateStr = propEndDate || (trip ? format(new Date(trip.end_date), 'yyyy-MM-dd') : format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+
+  // UI state for expand lists & edit modal
+  const [expandedCategory, setExpandedCategory] = useState(null);
+  const [editModalRow, setEditModalRow] = useState(null);
+
+  // Update ISO refs when date range changes (using UTC to match query)
+  useEffect(() => {
+    const [startY, startM, startD] = startDateStr.split('-').map(Number);
+    const [endY, endM, endD] = endDateStr.split('-').map(Number);
+    
+    startIsoRef.current = new Date(Date.UTC(startY, startM - 1, startD, 0, 0, 0)).toISOString();
+    endIsoRef.current = new Date(Date.UTC(endY, endM - 1, endD, 23, 59, 59, 999)).toISOString();
+    
+    console.log('Updated ISO refs:', { startIso: startIsoRef.current, endIso: endIsoRef.current });
+  }, [startDateStr, endDateStr]);
+
+  // Color palette for categories (cycled based on sorted order for consistency)
+  const colorPalette = [
+    '#ff6b6b', // Red
+    '#4ecdc4', // Teal
+    '#45b7d1', // Blue
+    '#96ceb4', // Green
+    '#feca57', // Yellow
+    '#ff9ff3', // Pink
+    '#54a0ff', // Light Blue
+    '#5f27cd', // Purple
+    '#00d2d3', // Cyan
+    '#ff9f43'  // Orange
+  ];
+
+  const toggleSelect = useCallback((id) => {
+    setSelectedExpenses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const deleteMultiple = useCallback(async () => {
+    if (selectedExpenses.size === 0) return;
+    if (!confirm(`Delete ${selectedExpenses.size} selected expenses?`)) return;
+    const ids = Array.from(selectedExpenses);
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .in('id', ids);
+      if (error) {
+        console.error('delete multiple error', error);
+        alert('Delete failed');
+      } else {
+        setExpenses(prev => prev.filter(r => !ids.includes(r.id)));
+        setSelectedExpenses(new Set());
+      }
+    } catch (e) {
+      console.error('unexpected delete multiple error', e);
+      alert('Delete failed');
+    }
+  }, [selectedExpenses]);
+
+  const selectAllInGroup = useCallback((groupId) => {
+    const group = grouped[groupId];
+    if (!group) return;
+    
+    setSelectedExpenses(prev => {
+      const newSet = new Set(prev);
+      const allSelected = group.rows.every(r => newSet.has(r.id));
+      
+      if (allSelected) {
+        // Deselect all in this group
+        group.rows.forEach(r => newSet.delete(r.id));
+      } else {
+        // Select all in this group
+        group.rows.forEach(r => newSet.add(r.id));
+      }
+      return newSet;
+    });
+  }, [grouped]);
+
+  // Helper: load categories
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name')
+        .order('name', { ascending: true });
+      if (!mounted) return;
+      if (error) {
+        console.error('categories load error', error);
+        setCategories([]);
+      } else setCategories(data || []);
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  // Load total budget for the range
+  const loadTotalBudget = useCallback(async () => {
+    let months;
+    if (trip) {
+      const start = new Date(trip.start_date);
+      const end = new Date(trip.end_date);
+      months = getMonthsInRange(start, end);
+    } else {
+      const start = new Date(startDateStr + 'T00:00:00');
+      const end = new Date(endDateStr + 'T23:59:59');
+      months = getMonthsInRange(start, end);
+    }
+    if (months.length > 0) {
+      let query = supabase
+        .from('budgets')
+        .select('amount')
+        .eq('user_id', user.id)
+        .in('month_year', months);
+      if (trip) {
+        query = query.eq('trip_id', trip.id);
+      } else {
+        query = query.is('trip_id', null);
+      }
+      const { data: budDataAll, error: budErrAll } = await query;
+      if (budErrAll) {
+        console.error('total budget load error', budErrAll);
+        setTotalBudget(0);
+      } else {
+        const total = (budDataAll || []).reduce((sum, b) => sum + Number(b.amount || 0), 0);
+        setTotalBudget(total);
+      }
+    } else {
+      setTotalBudget(0);
+    }
+  }, [startDateStr, endDateStr, user.id, trip]);
+
+  // Load expenses & budget for selected range
+  const loadRange = useCallback(async () => {
+    let mounted = true;
+
+    setLoading(true);
+    
+    // Parse dates correctly: create UTC dates to avoid timezone shifting
+    const [startY, startM, startD] = startDateStr.split('-').map(Number);
+    const [endY, endM, endD] = endDateStr.split('-').map(Number);
+    
+    if (!startY || !startM || !startD || !endY || !endM || !endD) {
+      console.error('Invalid date parsing:', { startDateStr, endDateStr });
+      setLoading(false);
+      return;
+    }
+    
+    const startIso = new Date(Date.UTC(startY, startM - 1, startD, 0, 0, 0)).toISOString();
+    const endIso = new Date(Date.UTC(endY, endM - 1, endD, 23, 59, 59, 999)).toISOString();
+    
+    const tripId = trip?.id;
+    const isCasual = !tripId;
+    console.log('Loading expenses for range:', { startDateStr, endDateStr, startIso, endIso, trip: tripId || 'casual (null)', user_id: user.id, isCasual });
+    
+    let query = supabase
+      .from('expenses')
+      .select(`
+        id, amount, kind, note, original_text, date, created_at, category_id, trip_id
+      `)
+      .eq('user_id', user.id)
+      .gte('date', startIso)
+      .lte('date', endIso)
+      .order('date', { ascending: false })
+      .limit(1000);
+    
+    if (isCasual) {
+      // For casual expenses, trip_id should be null
+      query = query.is('trip_id', null);
+      console.log('Querying casual expenses (trip_id = null)');
+    } else {
+      // For trip expenses
+      query = query.eq('trip_id', tripId);
+      console.log('Querying trip expenses (trip_id =', tripId, ')');
+    }
+    
+    const { data, error } = await query;
+    
+    if (!mounted) return;
+    if (error) {
+      console.error('expenses load error', error);
+      setExpenses([]);
+    } else {
+      console.log('✓ Loaded expenses:', data?.length || 0, 'records');
+      if (data && data.length > 0) {
+        console.log('First expense:', data[0]);
+        // Debug: show trip_id values
+        const trip_ids = [...new Set(data.map(d => d.trip_id))];
+        console.log('Trip IDs in results:', trip_ids);
+      }
+      setExpenses(data || []);
+    }
+    setLoading(false);
+  }, [user.id, startDateStr, endDateStr, trip]);
+
+  // Load expenses and budget when date range or trip changes
+  useEffect(() => {
+    console.log('Load effect triggered with:', { startDateStr, endDateStr, trip: trip?.id || 'casual', userId: user.id });
+    if (!user?.id) {
+      console.log('User ID not available yet');
+      return;
+    }
+    loadRange();
+    loadTotalBudget();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDateStr, endDateStr, trip, user.id]);
+
+  // Compute grouped, lended, borrowed from expenses
+  useEffect(() => {
+    // Build map: key = categoryId or 'uncategorized'
+    const catMap = {};
+    const idToName = {};
+    categories.forEach(c => { idToName[c.id] = c.name; });
+
+    let lendedTotal = 0;
+    let borrowedTotal = 0;
+    const catExpenses = [];
+
+    for (const row of expenses) {
+      if (row.kind === 'lended') {
+        lendedTotal += Number(row.amount || 0);
+      } else if (row.kind === 'borrowed') {
+        borrowedTotal += Number(row.amount || 0);
+      } else {
+        catExpenses.push(row);
+      }
+    }
+
+    setLendedTotal(lendedTotal);
+    setBorrowedTotal(borrowedTotal);
+
+    for (const row of catExpenses) {
+      // transform category label
+      const key = row.category_id || 'uncategorized';
+      const name = row.category_id ? (idToName[row.category_id] || 'Unknown') : 'Other';
+      if (!catMap[key]) catMap[key] = { id: key, name, total: 0, rows: [] };
+      catMap[key].rows.push(row);
+      catMap[key].total = Number(catMap[key].total || 0) + Number(row.amount || 0);
+    }
+
+    // ensure all categories exist in map (even with 0)
+    categories.forEach(c => {
+      if (!catMap[c.id]) catMap[c.id] = { id: c.id, name: c.name, total: 0, rows: [] };
+    });
+
+    // convert to object
+    setGrouped(catMap);
+  }, [expenses, categories]);
+
+  // Optimistic add on event
+  useEffect(() => {
+    const handleAdded = (e) => {
+      if (e.detail.user_id !== user.id) return;
+      if (trip && e.detail.trip_id !== trip.id) return;
+      if (!trip && e.detail.trip_id !== null) return;
+      const expDate = new Date(e.detail.date);
+      if (expDate < new Date(startIsoRef.current) || expDate > new Date(endIsoRef.current)) return;
+      setExpenses(prev => {
+        if (prev.some(r => r.id === e.detail.id)) return prev;
+        return [e.detail, ...prev];
+      });
+    };
+    window.addEventListener('expense-added', handleAdded);
+    return () => window.removeEventListener('expense-added', handleAdded);
+  }, [user.id, trip, startDateStr, endDateStr]);
+
+  // Realtime subscription
+  useEffect(() => {
+    // subscribe to realtime changes for this user's expenses
+    const channel = supabase.channel(`expenses-ch-${user.id}-${trip?.id || 'casual'}`);
+    
+    // Build filter: user_id must match, and trip_id must match view
+    const tripFilter = trip ? `user_id=eq.${user.id},trip_id=eq.${trip.id}` : `user_id=eq.${user.id},trip_id=is.null`;
+    
+    channel
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'expenses', filter: tripFilter },
+        (payload) => {
+          if (payload?.new && startIsoRef.current && endIsoRef.current) {
+            const newIso = payload.new.date;
+            if (newIso >= startIsoRef.current && newIso <= endIsoRef.current) {
+              // add into expenses list
+              setExpenses(prev => {
+                // avoid duplicate
+                if (prev.some(r => r.id === payload.new.id)) return prev;
+                return [payload.new, ...prev];
+              });
+            }
+          }
+        })
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'expenses', filter: tripFilter },
+        (payload) => {
+          if (payload?.new && startIsoRef.current && endIsoRef.current) {
+            setExpenses(prev => {
+              const newRow = payload.new;
+              const newIso = newRow.date;
+              const isInRange = newIso >= startIsoRef.current && newIso <= endIsoRef.current;
+              if (!isInRange) {
+                return prev.filter(r => r.id !== newRow.id);
+              }
+              return prev.map(r => r.id === newRow.id ? newRow : r);
+            });
+          }
+        })
+      .on('postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'expenses', filter: tripFilter },
+        (payload) => {
+          if (payload?.old) {
+            setExpenses(prev => prev.filter(r => r.id !== payload.old.id));
+          }
+        })
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      try {
+        if (channelRef.current) {
+          channelRef.current.unsubscribe();
+          channelRef.current = null;
+        }
+      } catch {/* ignore */ }
+    };
+  }, [user.id, trip, startDateStr, endDateStr]);
+
+  // Set budget function
+  const setBudget = useCallback(async () => {
+    if (!budgetInput || Number(budgetInput) <= 0) return;
+    const monthYear = trip ? getMonthYearStr(new Date(trip.start_date)) : getMonthYearStr(new Date(startDateStr));
+    const { data: existing } = await supabase
+      .from('budgets')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('month_year', monthYear)
+      .eq('trip_id', trip?.id || null)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      const id = existing[0].id;
+      const { error } = await supabase.from('budgets').update({ amount: Number(budgetInput) }).eq('id', id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('budgets').insert([{ user_id: user.id, month_year: monthYear, amount: Number(budgetInput), trip_id: trip?.id || null }]);
+      if (error) throw error;
+    }
+    setBudgetAmount(Number(budgetInput));
+    setBudgetEditing(false);
+    loadTotalBudget();
+  }, [budgetInput, user.id, startDateStr, trip, loadTotalBudget]);
+
+  const openEdit = useCallback((row) => {
+    setEditModalRow({
+      ...row,
+      amount: Number(row.amount || 0),
+      category_id: row.category_id || null,
+      note: row.note || '',
+      date: row.date ? new Date(row.date).toISOString().slice(0, 16) : new Date().toISOString().slice(0,16)
+    });
+  }, []);
+
+  const submitEdit = useCallback(async (updatedRow) => {
+    const { id, ...updateData } = updatedRow;
+    updateData.date = updatedRow.date ? new Date(updatedRow.date).toISOString() : new Date().toISOString();
+    const { error } = await supabase
+      .from('expenses')
+      .update(updateData)
+      .eq('id', id);
+    if (error) {
+      console.error('update error', error);
+      alert('Update failed');
+    } else {
+      setEditModalRow(null);
+      // realtime will apply update; also patch local list to feel instant
+      setExpenses(prev => prev.map(r => (r.id === id ? { ...r, ...updateData } : r)));
+    }
+  }, []);
+
+  const deleteExpense = useCallback(async (row) => {
+    if (!confirm('Delete this expense?')) return;
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', row.id);
+    if (error) {
+      console.error('delete error', error);
+      alert('Delete failed');
+    } else {
+      // realtime or window fallback will remove it; but to be safe remove locally
+      setExpenses(prev => prev.filter(r => r.id !== row.id));
+      if (selectedExpenses.has(row.id)) {
+        toggleSelect(row.id);
+      }
+    }
+  }, [selectedExpenses, toggleSelect]);
+
+  const deleteCategory = useCallback(async (categoryId, categoryName) => {
+    if (!confirm(`Delete category "${categoryName}"? All associated expenses will be recategorized to "Other".`)) return;
+    
+    try {
+      // First, update all expenses with this category to "Other"
+      const otherCategory = categories.find(c => c.name.toLowerCase() === 'other');
+      const otherCategoryId = otherCategory ? otherCategory.id : null;
+      
+      if (otherCategoryId) {
+        const { error: updateError } = await supabase
+          .from('expenses')
+          .update({ category_id: otherCategoryId })
+          .eq('category_id', categoryId);
+        
+        if (updateError) {
+          console.error('Error updating expenses:', updateError);
+          alert('Failed to recategorize expenses');
+          return;
+        }
+      }
+      
+      // Then delete the category
+      const { error: deleteError } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', categoryId);
+      
+      if (deleteError) {
+        console.error('Error deleting category:', deleteError);
+        alert('Failed to delete category');
+      } else {
+        // Update local categories state
+        setCategories(prev => prev.filter(c => c.id !== categoryId));
+        
+        // Update expenses to reflect the recategorization
+        setExpenses(prev => 
+          prev.map(exp => 
+            exp.category_id === categoryId 
+              ? { ...exp, category_id: otherCategoryId } 
+              : exp
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Unexpected error deleting category:', err);
+      alert('Unexpected error while deleting category');
+    }
+  }, [categories]);
+
+  // computed totals
+  const totalSpent = Object.values(grouped).reduce((s, g) => s + Number(g.total || 0), 0);
+  const monthYear = trip ? getMonthYearStr(new Date(trip.start_date)) : startDateStr.slice(0, 7);
+  const balance = (Number(totalBudget || 0) - Number(totalSpent || 0));
+  const progress = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+  const startDisplay = format(new Date(startDateStr), 'dd MMM yyyy');
+  const endDisplay = format(new Date(endDateStr), 'dd MMM yyyy');
+
+  // handlers: expand category
+  function toggleExpand(catId) {
+    setExpandedCategory(prev => (prev === catId ? null : catId));
+  }
+
+  // helper to get category name for card header
+  // eslint-disable-next-line no-unused-vars
+  const catNameById = useCallback((id) => {
+    if (!id) return 'Other';
+    const c = categories.find(x => x.id === id);
+    return c ? c.name : 'Other';
+  }, [categories]);
+
+  // Get color for a group (cycle through palette based on sorted category names for consistency)
+  function getCategoryColor(group) {
+    // Sort categories by name for consistent ordering
+    const sortedGroups = Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name));
+    const index = sortedGroups.findIndex(g => g.id === group.id);
+    return colorPalette[index % colorPalette.length];
+  }
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading dashboard...</div>;
+  }
+
+  const balanceTextColor = balance < 0 ? '#f44336' : '#2e7d32';
+
+  const isMultipleSelected = selectedExpenses.size > 0;
+  const buttonStyle = { fontSize: 12, padding: '4px 8px' };
+  const disabledButtonStyle = { ...buttonStyle, opacity: 0.5, cursor: 'not-allowed' };
+
+  return (
+    <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', padding: '20px' }}>
+      {/* Top bar */}
+      <div className="card" style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: 12,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        padding: '20px',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+      }}>
+        <div style={{ flex: 1 }}>
+          <h2 style={{ margin: 0, fontSize: '24px' }}>Dashboard — {trip ? trip.name : `${startDisplay} to ${endDisplay}`}</h2>
+          <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
+            {trip ? `Trip expenses from ${startDisplay} to ${endDisplay}` : 'Showing expenses in custom date range'}
+          </div>
+          {/* Added Balance display below the showing dates */}
+          <div style={{
+            marginTop: 12,
+            padding: '12px',
+            background: 'white',
+            borderRadius: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            color: 'black',
+            fontWeight: 'bold'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 24 }}>⚖️</span>
+              <span style={{fontSize: 20}}>Balance</span>
+            </div>
+            <span style={{fontSize: 42, color: balanceTextColor}}>₹{Number(balance || 0).toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'right', minWidth: '400px' }}>
+          {/* Highlighted Metrics */}
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'space-around', alignItems: 'center', marginBottom: 12 }}>
+            {/* Budget */}
+            <div style={{
+              textAlign: 'center',
+              padding: '16px 20px',
+              background: 'white',
+              borderRadius: '8px',
+              flex: 1,
+              position: 'relative'
+            }}>
+              <div style={{ fontSize: 14, color: 'black', marginBottom: 4 }}>💰 Budget (Period)</div>
+              <div style={{ fontWeight: 'bold', fontSize: '24px', color: '#1976d2' }}>₹{Number(totalBudget || 0).toFixed(2)}</div>
+            </div>
+
+            {/* Spent */}
+            <div style={{
+              textAlign: 'center',
+              padding: '16px 20px',
+              background: 'white',
+              borderRadius: '8px',
+              flex: 1,
+              position: 'relative'
+            }}>
+              <div style={{ fontSize: 14, color: 'black', marginBottom: 4 }}>💳 Spent</div>
+              <div style={{ fontWeight: 'bold', fontSize: '24px', color: '#f44336' }}>₹{Number(totalSpent || 0).toFixed(2)}</div>
+            </div>
+          </div>
+            {/* Progress Bar for Spent vs Budget */}
+          {totalBudget > 0 && (
+            <div style={{
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: '6px',
+              padding: '8px',
+              marginBottom: 12
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.8)',
+                marginBottom: 4
+              }}>
+                <span>Progress: {progress.toFixed(1)}%</span>
+                <span style={{ color: progress > 100 ? '#f44336' : '#4caf50' }}>{progress > 100 ? 'Over Budget' : 'On Track'}</span>
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.2)',
+                borderRadius: '4px',
+                height: '8px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: `${Math.min(progress, 100)}%`,
+                  height: '100%',
+                  background: progress > 100 ? '#f44336' : '#4caf50',
+                  borderRadius: '4px',
+                  transition: 'width 0.3s ease'
+                }} />
+              </div>
+            </div>
+          )}
+          <div style={{ textAlign: 'center', marginBottom: 12 }}>
+            {budgetEditing ? (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+                <input value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="amount" style={{ width: 100, padding: 6, borderRadius: '4px', border: '1px solid rgba(255,255,255,0.3)' }} />
+                <button className="btn" onClick={setBudget} style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}>Save</button>
+                <button className="btn-ghost" onClick={() => { setBudgetEditing(false); setBudgetInput(String(budgetAmount || '')); }} style={{ color: 'white' }}>Cancel</button>
+              </div>
+            ) : (
+              <button className="btn" onClick={() => setBudgetEditing(true)} style={{ background: 'rgba(255,255,255,0.8)', color: 'black', border: '1px solid rgba(255,255,255,0.3)' , fontSize: 15, fontWeight: 'bold'}}>
+                Set / Edit {format(new Date(monthYear + '-01'), 'MMMM')} Budget
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Category cards - stacked vertically, one per row */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: '20px' }}>
+        {Object.values(grouped)
+          .filter(group => Number(group.total || 0) > 0)
+          .map((group) => {
+          const color = getCategoryColor(group);
+          return (
+            <div
+              key={group.id}
+              className="card"
+              style={{
+                width: '100%',
+                background: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+                overflow: 'hidden',
+                borderLeft: `5px solid ${color}`
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '20px',
+                background: `${color}15`
+              }}>
+                <div>
+                  <div style={{ fontSize: 16, color: color, fontWeight: 'bold', marginBottom: '4px' }}>{group.name}</div>
+                  <div style={{ fontSize: 24, fontWeight: 'bold', color: color }}>₹{Number(group.total || 0).toFixed(2)}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button
+                    className="btn-ghost"
+                    onClick={() => toggleExpand(group.id)}
+                    style={{ color: color }}
+                  >
+                    {expandedCategory === group.id ? 'Hide' : `View (${group.rows.length})`}
+                  </button>
+                  {/* Delete category button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteCategory(group.id, group.name);
+                    }}
+                    style={{
+                      background: 'rgba(244,67,54,0.15)',
+                      color: '#e74c3c',
+                      border: '1px solid #e74c3c',
+                      borderRadius: '6px',
+                      padding: '6px 10px',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '32px'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(244,67,54,0.8)'; e.currentTarget.style.color = 'white'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(244,67,54,0.15)'; e.currentTarget.style.color = '#e74c3c'; }}
+                    title="Delete category"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {expandedCategory === group.id && (
+                <div style={{ padding: '0 20px 20px' }}>
+                  <div style={{
+                    padding: '10px 0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: '1px solid #eee',
+                    marginBottom: 10
+                  }}>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <button
+                        onClick={() => selectAllInGroup(group.id)}
+                        style={{
+                          color: '#667eea',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: 12,
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {group.rows.every(r => selectedExpenses.has(r.id)) ? 'Deselect All' : 'Select All'}
+                      </button>
+                      {selectedExpenses.size > 0 && <span style={{ color: '#666', fontSize: 12 }}>({selectedExpenses.size} selected)</span>}
+                    </div>
+                    {selectedExpenses.size > 0 && (
+                      <button
+                        onClick={deleteMultiple}
+                        style={{
+                          color: '#e74c3c',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: 14
+                        }}
+                      >
+                        Delete Selected
+                      </button>
+                    )}
+                  </div>
+                  {group.rows.length === 0 && <div style={{ color: '#666', padding: '10px 0' }}>No expenses</div>}
+                  <ul className="recent-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    {group.rows.map(r => (
+                      <li
+                        key={r.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          gap: 8,
+                          padding: '12px',
+                          background: 'rgba(0,0,0,0.02)',
+                          borderRadius: '8px',
+                          marginBottom: '8px'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedExpenses.has(r.id)}
+                          onChange={() => toggleSelect(r.id)}
+                          style={{ marginRight: 8, marginTop: 2 }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                            <strong>₹{Number(r.amount).toFixed(2)}</strong> — {r.note || r.original_text || r.kind}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#666' }}>{format(parseISO(r.date), 'MMM dd, yyyy HH:mm')}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            className="btn-ghost"
+                            onClick={(e) => { e.stopPropagation(); openEdit(r); }}
+                            disabled={isMultipleSelected}
+                            style={isMultipleSelected ? disabledButtonStyle : buttonStyle}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn-ghost"
+                            onClick={(e) => { e.stopPropagation(); deleteExpense(r); }}
+                            disabled={isMultipleSelected}
+                            style={isMultipleSelected ? disabledButtonStyle : { ...buttonStyle, color: '#e74c3c' }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Lended and Borrowed cards */}
+      {(lendedTotal > 0 || borrowedTotal > 0) && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: '20px' }}>
+          {lendedTotal > 0 && (
+            <div className="card" style={{ 
+              width: '100%', 
+              background: 'white', 
+              borderRadius: '12px', 
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)', 
+              overflow: 'hidden',
+              borderLeft: `5px solid #2e7d32`
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                padding: '20px', 
+                background: 'rgba(46, 125, 50, 0.05)' 
+              }}>
+                <div>
+                  <div style={{ fontSize: 16, color: '#2e7d32', fontWeight: 'bold', marginBottom: '4px' }}>Lended</div>
+                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#2e7d32' }}>₹{Number(lendedTotal).toFixed(2)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+          {borrowedTotal > 0 && (
+            <div className="card" style={{ 
+              width: '100%', 
+              background: 'white', 
+              borderRadius: '12px', 
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)', 
+              overflow: 'hidden',
+              borderLeft: `5px solid #f44336`
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                padding: '20px', 
+                background: 'rgba(244, 67, 54, 0.05)' 
+              }}>
+                <div>
+                  <div style={{ fontSize: 16, color: '#f44336', fontWeight: 'bold', marginBottom: '4px' }}>Borrowed</div>
+                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#f44336' }}>₹{Number(borrowedTotal).toFixed(2)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit modal (simple inline overlay) */}
+      {editModalRow && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 60
+        }}>
+          <div style={{ 
+            width: 520, 
+            background: '#fff', 
+            padding: 24, 
+            borderRadius: 12, 
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>Edit expense</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <label style={{ fontWeight: 'bold', color: '#333' }}>Amount</label>
+              <input 
+                type="number" 
+                value={editModalRow.amount} 
+                onChange={e => setEditModalRow(prev => ({ ...prev, amount: e.target.value }))} 
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }} 
+              />
+
+              <label style={{ fontWeight: 'bold', color: '#333' }}>Category</label>
+              <select 
+                value={editModalRow.category_id || ''} 
+                onChange={e => setEditModalRow(prev => ({ ...prev, category_id: e.target.value || null }))}
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }}
+              >
+                <option value=''>Other</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+
+              <label style={{ fontWeight: 'bold', color: '#333' }}>Note</label>
+              <input 
+                value={editModalRow.note || ''} 
+                onChange={e => setEditModalRow(prev => ({ ...prev, note: e.target.value }))} 
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }} 
+              />
+
+              <label style={{ fontWeight: 'bold', color: '#333' }}>Date & time</label>
+              <input 
+                type="datetime-local" 
+                value={editModalRow.date} 
+                onChange={e => setEditModalRow(prev => ({ ...prev, date: e.target.value }))} 
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px' }} 
+              />
+
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16 }}>
+                <button className="btn-ghost" onClick={() => setEditModalRow(null)} style={{ padding: '8px 16px' }}>Cancel</button>
+                <button className="btn" onClick={() => submitEdit(editModalRow)} style={{ padding: '8px 16px', background: '#667eea', color: 'white' }}>Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* small footer spacing */}
+      <div style={{ height: 20 }} />
+    </div>
+  );
+}
