@@ -21,6 +21,8 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
   const [tripBudgetAmounts, setTripBudgetAmounts] = useState({});
   const [budgetInputValues, setBudgetInputValues] = useState({});
   const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [editingTripDates, setEditingTripDates] = useState(null);
 
   const loadTripsWithSummary = useCallback(async () => {
     // Load categories
@@ -171,7 +173,7 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
   async function createTrip() {
     setMessage('');
     if (!newTrip.name || !newTrip.start || !newTrip.end) return setMessage('Please fill all fields');
-    if (new Date(newTrip.start) >= new Date(newTrip.end)) return setMessage('End date must be after start date');
+    if (new Date(newTrip.start) > new Date(newTrip.end)) return setMessage('End date must be on or after start date');
     const { data, error } = await supabase
       .from('trips')
       .insert({
@@ -395,6 +397,79 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
     }
   }
 
+  async function deleteExpenseById(expenseId) {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', expenseId);
+      
+      if (error) {
+        console.error('Error deleting expense', error);
+        alert('Failed to delete expense');
+      } else {
+        await loadTripsWithSummary();
+      }
+    } catch (err) {
+      console.error('Unexpected error deleting expense', err);
+      alert('Unexpected error while deleting expense');
+    }
+  }
+
+  async function updateExpense(expenseId, updates) {
+    try {
+      // Prepare update data
+      const updateData = { ...updates };
+      delete updateData.id; // Remove id from update
+      
+      // Convert date to ISO string if it's a string
+      if (updateData.date && typeof updateData.date === 'string') {
+        updateData.date = new Date(updateData.date).toISOString();
+      }
+      
+      const { error } = await supabase
+        .from('expenses')
+        .update(updateData)
+        .eq('id', expenseId);
+      
+      if (error) {
+        console.error('Error updating expense', error);
+        alert('Failed to update expense');
+      } else {
+        setEditingExpense(null);
+        await loadTripsWithSummary();
+      }
+    } catch (err) {
+      console.error('Unexpected error updating expense', err);
+      alert('Unexpected error while updating expense');
+    }
+  }
+
+  async function updateTripDates(tripId, startDate, endDate) {
+    if (new Date(startDate) > new Date(endDate)) {
+      alert('End date must be on or after start date');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('trips')
+        .update({ start_date: startDate, end_date: endDate })
+        .eq('id', tripId);
+      
+      if (error) {
+        console.error('Error updating trip dates', error);
+        alert('Failed to update trip dates');
+      } else {
+        setEditingTripDates(null);
+        await loadTripsWithSummary();
+      }
+    } catch (err) {
+      console.error('Unexpected error updating trip dates', err);
+      alert('Unexpected error while updating trip dates');
+    }
+  }
+
   async function setTripBudget(tripId, budgetAmount) {
     if (!budgetAmount || Number(budgetAmount) <= 0) {
       alert('Please enter a valid budget amount');
@@ -587,10 +662,48 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                           <h3 style={{ margin: 0, fontSize: 'clamp(14px, 2.5vw, 16px)', fontWeight: 700 }}>{trip.name}</h3>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingTripDates(editingTripDates?.tripId === trip.id ? null : { tripId: trip.id, start: trip.start_date.split('T')[0], end: trip.end_date.split('T')[0] });
+                            }}
+                            style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer' }}
+                          >
+                            {editingTripDates?.tripId === trip.id ? 'Done' : 'Edit Dates'}
+                          </button>
                         </div>
-                        <div style={{ fontSize: 'clamp(11px, 1.8vw, 12px)', opacity: 0.95 }}>
-                          {format(new Date(trip.start_date), 'MMM dd, yyyy')} — {format(new Date(trip.end_date), 'MMM dd, yyyy')}
-                        </div>
+                        {editingTripDates?.tripId === trip.id ? (
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <input
+                              type="date"
+                              value={editingTripDates.start}
+                              onChange={(e) => setEditingTripDates(prev => ({ ...prev, start: e.target.value }))}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ padding: '4px 6px', fontSize: '12px', borderRadius: '4px', border: 'none', color: '#333', WebkitTextFillColor: '#333', backgroundColor: '#fff' }}
+                            />
+                            <span style={{ color: 'white', fontSize: '12px' }}>to</span>
+                            <input
+                              type="date"
+                              value={editingTripDates.end}
+                              onChange={(e) => setEditingTripDates(prev => ({ ...prev, end: e.target.value }))}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ padding: '4px 6px', fontSize: '12px', borderRadius: '4px', border: 'none', color: '#333', WebkitTextFillColor: '#333', backgroundColor: '#fff' }}
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateTripDates(trip.id, editingTripDates.start, editingTripDates.end);
+                              }}
+                              style={{ background: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer' }}
+                            >
+                              Save
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 'clamp(11px, 1.8vw, 12px)', opacity: 0.95 }}>
+                            {format(new Date(trip.start_date), 'MMM dd, yyyy')} — {format(new Date(trip.end_date), 'MMM dd, yyyy')}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1007,7 +1120,14 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                                           </span>
                                           <button
                                             className="btn-ghost"
-                                            onClick={() => {/* Edit functionality - placeholder */}}
+                                            onClick={() => {
+                                              // Open edit modal for this expense
+                                              setEditingExpense({
+                                                ...exp,
+                                                amount: Number(exp.amount || 0),
+                                                date: exp.date ? new Date(exp.date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)
+                                              });
+                                            }}
                                             disabled={isMultipleSelected}
                                             style={isMultipleSelected ? disabledButtonStyle : buttonStyle}
                                           >
@@ -1015,7 +1135,11 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                                           </button>
                                           <button
                                             className="btn-ghost"
-                                            onClick={() => {/* Delete functionality - placeholder */}}
+                                            onClick={() => {
+                                              if (confirm(`Delete expense: ${exp.note}?`)) {
+                                                deleteExpenseById(exp.id);
+                                              }
+                                            }}
                                             disabled={isMultipleSelected}
                                             style={isMultipleSelected ? { ...disabledButtonStyle, color: '#e74c3c' } : { ...buttonStyle, color: '#e74c3c' }}
                                           >
@@ -1038,6 +1162,66 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Edit Expense Modal */}
+      {editingExpense && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '12px'
+        }}>
+          <div style={{ 
+            width: '100%',
+            maxWidth: 520, 
+            background: '#fff', 
+            padding: 'clamp(16px, 3vw, 24px)', 
+            borderRadius: 12, 
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', color: '#333', fontSize: 'clamp(1.1rem, 3vw, 1.3rem)' }}>Edit expense</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <label style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(13px, 2vw, 14px)' }}>Amount</label>
+              <input 
+                type="number" 
+                value={editingExpense.amount} 
+                onChange={e => setEditingExpense(prev => ({ ...prev, amount: e.target.value }))} 
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }} 
+              />
+
+              <label style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(13px, 2vw, 14px)' }}>Category</label>
+              <select 
+                value={editingExpense.category_id || ''} 
+                onChange={e => setEditingExpense(prev => ({ ...prev, category_id: e.target.value || null }))}
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
+              >
+                <option value=''>Other</option>
+                {Object.entries(categories).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+              </select>
+
+              <label style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(13px, 2vw, 14px)' }}>Note</label>
+              <input 
+                value={editingExpense.note || ''} 
+                onChange={e => setEditingExpense(prev => ({ ...prev, note: e.target.value }))} 
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }} 
+              />
+
+              <label style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(13px, 2vw, 14px)' }}>Date & time</label>
+              <input 
+                type="datetime-local" 
+                value={editingExpense.date} 
+                onChange={e => setEditingExpense(prev => ({ ...prev, date: e.target.value }))} 
+                style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }} 
+              />
+
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="btn-ghost" onClick={() => setEditingExpense(null)} style={{ padding: '8px 16px', fontSize: 'clamp(12px, 2vw, 14px)', flex: 1, minWidth: '80px' }}>Cancel</button>
+                <button className="btn" onClick={() => updateExpense(editingExpense.id, editingExpense)} style={{ padding: '8px 16px', background: '#667eea', color: 'white', fontSize: 'clamp(12px, 2vw, 14px)', flex: 1, minWidth: '80px' }}>Save</button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
