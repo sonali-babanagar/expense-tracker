@@ -464,6 +464,20 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
 
   // ---------- RENDER (Original CSS/Structure Restored) ----------
   if (showCreate) {
+    const dateInputStyle = {
+      padding: '10px',
+      border: '1px solid #ddd',
+      borderRadius: '6px',
+      fontSize: '14px',
+      color: '#333',
+      backgroundColor: '#fff',
+      WebkitTextFillColor: '#333',
+      caretColor: '#333',
+      fontWeight: '500',
+      width: '100%',
+      boxSizing: 'border-box'
+    };
+
     return (
       <div className="card" style={{ marginBottom: 'clamp(12px, 2vw, 20px)' }}>
         <h3 style={{ fontSize: 'clamp(1.1rem, 3vw, 1.3rem)' }}>Create New Trip</h3>
@@ -472,19 +486,19 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
             placeholder="Trip name (e.g., Goa Vacation)"
             value={newTrip.name}
             onChange={e => setNewTrip(prev => ({ ...prev, name: e.target.value }))}
-            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', color: '#333' }}
+            style={dateInputStyle}
           />
           <input
             type="date"
             value={newTrip.start}
             onChange={e => setNewTrip(prev => ({ ...prev, start: e.target.value }))}
-            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', color: '#333' }}
+            style={dateInputStyle}
           />
           <input
             type="date"
             value={newTrip.end}
             onChange={e => setNewTrip(prev => ({ ...prev, end: e.target.value }))}
-            style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', color: '#333' }}
+            style={dateInputStyle}
           />
           <div style={{ display: 'flex', gap: 'clamp(8px, 2vw, 12px)', flexWrap: 'wrap' }}>
             <button className="btn" onClick={createTrip} style={{ flex: 1, minWidth: '100px', fontSize: 'clamp(12px, 2vw, 14px)' }}>Create</button>
