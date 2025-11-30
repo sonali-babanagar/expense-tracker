@@ -118,9 +118,37 @@ export default function App() {
         }}>
           {/* Sign Out Button - Moved Above Date Filters */}
           <button
-            onClick={() => {
+            onClick={async () => {
               if (window.confirm('Are you sure you want to sign out?')) {
-                supabase.auth.signOut();
+                try {
+                  // Attempt server-side logout (non-blocking)
+                  supabase.auth.signOut({ scope: 'local' }).catch(err => {
+                    // Silently fail - session missing or invalid is expected
+                    console.debug('Server logout status:', err?.message || 'completed');
+                  });
+                } catch (err) {
+                  // Catch any unexpected errors silently
+                  console.debug('Logout attempt:', err?.message || 'completed');
+                }
+                
+                // Immediately clear client-side session
+                setUser(null);
+                
+                // Clear all auth tokens from storage
+                if (typeof window !== 'undefined' && window.localStorage) {
+                  Object.keys(localStorage).forEach(key => {
+                    if (key.includes('sb-') || key.includes('supabase') || key.includes('auth')) {
+                      localStorage.removeItem(key);
+                    }
+                  });
+                }
+                
+                if (typeof window !== 'undefined' && window.sessionStorage) {
+                  sessionStorage.clear();
+                }
+                
+                // Redirect to login page
+                window.location.href = '/';
               }
             }}
             style={{
