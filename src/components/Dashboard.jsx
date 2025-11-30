@@ -153,9 +153,11 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
   const loadTotalBudget = useCallback(async () => {
     if (!user?.id) return;
 
+    // For casual expenses, get all months in the selected date range
+    // For trips, get all months from trip start to trip end
     const months = trip
       ? getMonthsInRange(new Date(trip.start_date), new Date(trip.end_date))
-      : [getMonthYearStr(new Date(startDateStr))];
+      : getMonthsInRange(new Date(startDateStr), new Date(endDateStr));
 
     let query = supabase
       .from('budgets')
@@ -174,7 +176,7 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
 
     const total = (data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
     setTotalBudget(total);
-  }, [user?.id, trip, startDateStr]);
+  }, [user?.id, trip, startDateStr, endDateStr]);
 
   // Load expenses & budget for selected range
   const loadRange = useCallback(async () => {
