@@ -784,7 +784,7 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                     </div>
 
                     {/* Summary Details */}
-                    <div style={{
+                    {/* <div style={{
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr',
                       gap: 16,
@@ -816,7 +816,7 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                         <div style={{ fontSize: 18, fontWeight: '700', color: '#333' }}>{trip.spentPct.toFixed(1)}%</div>
                       </div>
                     </div>
-                    
+                     */}
                     {/* Expenses List by Category - Dashboard Style */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       {expenses.length === 0 ? (
