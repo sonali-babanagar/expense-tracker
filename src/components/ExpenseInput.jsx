@@ -12,6 +12,7 @@ export default function ExpenseInput({ user, trip_id = null, onSuccess = () => {
   const [categories, setCategories] = useState([]); // { id, name }
   const [message, setMessage] = useState('');
   const [categorizationInProgress, setCategorizationInProgress] = useState(false);
+  const [customDate, setCustomDate] = useState(''); // For manual date selection
 
   useEffect(() => {
     let mounted = true;
@@ -102,13 +103,40 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
       if (textLower.includes('borr')) kind = 'borrowed';
       else if (textLower.includes('len') || textLower.includes('lend')) kind = 'lended';
 
-      // Determine the expense date: use the selected 'from' date if available, otherwise use current date
+      // Determine the expense date
       let expenseDate = new Date().toISOString();
-      if (startDateStr) {
-        // Parse the startDateStr (format: YYYY-MM-DD) and convert to ISO string
-        const [startY, startM, startD] = startDateStr.split('-').map(Number);
-        if (startY && startM && startD) {
-          expenseDate = new Date(Date.UTC(startY, startM - 1, startD, 0, 0, 0)).toISOString();
+      
+      // Check if date is within selected range
+      if (startDateStr && endDateStr) {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr);
+        const todayDate = new Date(todayStr);
+        
+        // Check if today is within range
+        if (todayDate >= startDate && todayDate <= endDate) {
+          // Today is within range - use it
+          expenseDate = today.toISOString();
+        } else {
+          // Today is NOT within range - check if custom date is set
+          if (!customDate) {
+            setMessage('Please select a date within the selected range');
+            setLoading(false);
+            return;
+          }
+          // Use custom date
+          const [customY, customM, customD] = customDate.split('-').map(Number);
+          if (customY && customM && customD) {
+            expenseDate = new Date(Date.UTC(customY, customM - 1, customD, 0, 0, 0)).toISOString();
+          }
+        }
+      } else if (customDate) {
+        // If no date range but custom date is provided, use it
+        const [customY, customM, customD] = customDate.split('-').map(Number);
+        if (customY && customM && customD) {
+          expenseDate = new Date(Date.UTC(customY, customM - 1, customD, 0, 0, 0)).toISOString();
         }
       }
 
@@ -206,6 +234,42 @@ Extract: amount (number), category (from list), and kind (expense/borrowed/lende
             }}
             disabled={loading}
           />
+          {/* Date input field - shown only when date is outside range */}
+          {startDateStr && endDateStr && (() => {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const startDate = new Date(startDateStr);
+            const endDate = new Date(endDateStr);
+            const todayDate = new Date(todayStr);
+            const isOutsideRange = todayDate < startDate || todayDate > endDate;
+            
+            return isOutsideRange ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: 'clamp(11px, 2vw, 13px)', fontWeight: '500' }}>
+                  Select Date (Today is outside range):
+                </label>
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={e => setCustomDate(e.target.value)}
+                  min={startDateStr}
+                  max={endDateStr}
+                  style={{
+                    width: '100%',
+                    padding: 'clamp(8px, 2vw, 12px)',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: 'clamp(13px, 2vw, 16px)',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    color: '#333',
+                    outline: 'none',
+                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.05)'
+                  }}
+                  disabled={loading}
+                />
+              </div>
+            ) : null;
+          })()}
           <div style={{ display: 'flex', gap: 'clamp(8px, 2vw, 12px)', alignItems: 'center', flexWrap: 'wrap' }}>
             <button 
               className="btn" 
