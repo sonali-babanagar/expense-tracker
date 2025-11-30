@@ -402,6 +402,17 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
     }
 
     try {
+      // Find the trip to get its date for month_year
+      const trip = trips.find(t => t.id === tripId);
+      if (!trip) {
+        alert('Trip not found');
+        return;
+      }
+
+      // Generate month_year from trip start date (format: YYYY-MM)
+      const tripDate = new Date(trip.start_date);
+      const monthYear = `${tripDate.getFullYear()}-${String(tripDate.getMonth() + 1).padStart(2, '0')}`;
+
       // Check if budget already exists for this trip
       const { data: existing } = await supabase
         .from('budgets')
@@ -418,12 +429,13 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
           .eq('id', existing[0].id);
         if (error) throw error;
       } else {
-        // Create new budget
+        // Create new budget with month_year
         const { error } = await supabase
           .from('budgets')
           .insert([{ 
             user_id: user.id, 
             trip_id: tripId, 
+            month_year: monthYear,
             amount: Number(budgetAmount)
           }]);
         if (error) throw error;
