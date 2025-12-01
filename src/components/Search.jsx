@@ -233,7 +233,8 @@ export default function Search({ user, startDateStr, endDateStr }) {
                 cursor: 'pointer',
                 fontSize: '12px',
                 fontWeight: selectedCategories.has('uncategorized') ? 'bold' : 'normal',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                color: '#333'
               }}
             >
               Other
@@ -250,7 +251,8 @@ export default function Search({ user, startDateStr, endDateStr }) {
                   cursor: 'pointer',
                   fontSize: '12px',
                   fontWeight: selectedCategories.has(cat.id) ? 'bold' : 'normal',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  color: '#333'
                 }}
               >
                 {cat.name}
@@ -258,37 +260,6 @@ export default function Search({ user, startDateStr, endDateStr }) {
             ))}
           </div>
         </div>
-
-        {/* Expense Type Filter */}
-        {/* <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', fontSize: 'clamp(12px, 1.8vw, 14px)' }}>
-            Filter by Type
-          </label>
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px'
-          }}>
-            {expenseTypes.map(type => (
-              <button
-                key={type}
-                onClick={() => toggleType(type)}
-                style={{
-                  padding: '6px 12px',
-                  border: selectedTypes.has(type) ? '2px solid #667eea' : '1px solid #ccc',
-                  background: selectedTypes.has(type) ? 'rgba(102, 126, 234, 0.1)' : 'white',
-                  borderRadius: '20px',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: selectedTypes.has(type) ? 'bold' : 'normal',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {formatKind(type)}
-              </button>
-            ))}
-          </div>
-        </div> */}
 
         {/* Expense Context Filter (Casual/Special) */}
         <div style={{ marginBottom: '16px' }}>
@@ -312,7 +283,8 @@ export default function Search({ user, startDateStr, endDateStr }) {
                   cursor: 'pointer',
                   fontSize: '12px',
                   fontWeight: selectedContexts.has(context) ? 'bold' : 'normal',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  color: '#333'
                 }}
               >
                 {context.charAt(0).toUpperCase() + context.slice(1)}

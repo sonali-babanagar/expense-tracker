@@ -228,7 +228,7 @@ export default function App() {
             <button
               className={view === 'casual' ? 'active' : ''}
               onClick={() => { setView('casual'); setCurrentTrip(null); }}
-              style={{ flex: 1, minWidth: '80px', padding: '8px 12px', fontSize: 'clamp(12px, 2vw, 14px)' }}
+              style={{ flex: 1, minWidth: '80px', padding: '8px 12px', fontSize: 'clamp(12px, 2vw, 14px)', color: '#333' }}
             >
               Casual
             </button>
