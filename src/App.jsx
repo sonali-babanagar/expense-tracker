@@ -6,6 +6,7 @@ import Auth from './components/Auth';
 import ExpenseInput from './components/ExpenseInput';
 import Dashboard from './components/Dashboard';
 import TripsTab from './components/TripsTab';
+import Search from './components/Search';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -238,6 +239,13 @@ export default function App() {
             >
               Special
             </button>
+            <button
+              className={view === 'search' ? 'active' : ''}
+              onClick={() => setView('search')}
+              style={{ flex: 1, minWidth: '80px', padding: '8px 12px', fontSize: 'clamp(12px, 2vw, 14px)', backgroundColor: view === 'search' ? '#667eea' : 'white', color: view === 'search' ? 'white' : 'inherit' }}
+            >
+              Search
+            </button>
           </nav>
         </div>
       </header>
@@ -348,6 +356,11 @@ export default function App() {
               </>
             )}
           </>
+        )}
+
+        {/* ========== SEARCH VIEW ========== */}
+        {view === 'search' && (
+          <Search user={user} startDateStr={startDateStr} endDateStr={endDateStr} />
         )}
       </main>
 
