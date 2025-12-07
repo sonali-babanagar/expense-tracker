@@ -445,28 +445,33 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
     }
   }
 
-  async function updateTripDates(tripId, startDate, endDate) {
+  async function updateTripDates(tripId, startDate, endDate, name) {
     if (new Date(startDate) > new Date(endDate)) {
       alert('End date must be on or after start date');
+      return;
+    }
+    
+    if (!name || name.trim() === '') {
+      alert('Please enter a trip name');
       return;
     }
     
     try {
       const { error } = await supabase
         .from('trips')
-        .update({ start_date: startDate, end_date: endDate })
+        .update({ start_date: startDate, end_date: endDate, name: name.trim() })
         .eq('id', tripId);
       
       if (error) {
-        console.error('Error updating trip dates', error);
-        alert('Failed to update trip dates');
+        console.error('Error updating trip', error);
+        alert('Failed to update trip');
       } else {
         setEditingTripDates(null);
         await loadTripsWithSummary();
       }
     } catch (err) {
-      console.error('Unexpected error updating trip dates', err);
-      alert('Unexpected error while updating trip dates');
+      console.error('Unexpected error updating trip', err);
+      alert('Unexpected error while updating trip');
     }
   }
 
@@ -661,15 +666,25 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                          <h3 style={{ margin: 0, fontSize: 'clamp(14px, 2.5vw, 16px)', fontWeight: 700 }}>{trip.name}</h3>
+                          {editingTripDates?.tripId === trip.id ? (
+                            <input
+                              type="text"
+                              value={editingTripDates.name}
+                              onChange={(e) => setEditingTripDates(prev => ({ ...prev, name: e.target.value }))}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ padding: '4px 6px', fontSize: '14px', borderRadius: '4px', border: 'none', color: '#333', fontWeight: 700, WebkitTextFillColor: '#333', backgroundColor: '#fff', flex: 1, minWidth: '150px' }}
+                            />
+                          ) : (
+                            <h3 style={{ margin: 0, fontSize: 'clamp(14px, 2.5vw, 16px)', fontWeight: 700 }}>{trip.name}</h3>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingTripDates(editingTripDates?.tripId === trip.id ? null : { tripId: trip.id, start: trip.start_date.split('T')[0], end: trip.end_date.split('T')[0] });
+                              setEditingTripDates(editingTripDates?.tripId === trip.id ? null : { tripId: trip.id, name: trip.name, start: trip.start_date.split('T')[0], end: trip.end_date.split('T')[0] });
                             }}
-                            style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer' }}
+                            style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer', flexShrink: 0 }}
                           >
-                            {editingTripDates?.tripId === trip.id ? 'Done' : 'Edit Dates'}
+                            {editingTripDates?.tripId === trip.id ? 'Done' : 'Edit'}
                           </button>
                         </div>
                         {editingTripDates?.tripId === trip.id ? (
@@ -692,9 +707,9 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                updateTripDates(trip.id, editingTripDates.start, editingTripDates.end);
+                                updateTripDates(trip.id, editingTripDates.start, editingTripDates.end, editingTripDates.name);
                               }}
-                              style={{ background: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer' }}
+                              style={{ background: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer', flexShrink: 0 }}
                             >
                               Save
                             </button>
@@ -1084,7 +1099,7 @@ export default function TripsTab({ user, onTripSelect, startDateStr, endDateStr,
                                       </button>
 
                                   </div>
-                                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: group.rows.length > 3 ? '400px' : 'auto', overflowY: group.rows.length > 5 ? 'auto' : 'visible', paddingRight: group.rows.length > 3 ? 'clamp(4px, 1vw, 8px)' : '0' }}>
                                     {group.rows.map(exp => (
                                       <li
                                         key={exp.id}

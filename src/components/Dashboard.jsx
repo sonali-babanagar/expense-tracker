@@ -859,7 +859,7 @@ export default function Dashboard({ user, trip = null, startDateStr: propStartDa
                     )}
                   </div>
                   {group.rows.length === 0 && <div style={{ color: '#666', padding: 'clamp(8px, 1.5vw, 10px) 0', fontSize: 'clamp(12px, 2vw, 14px)' }}>No expenses</div>}
-                  <ul className="recent-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  <ul className="recent-list" style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: group.rows.length > 5 ? '400px' : 'auto', overflowY: group.rows.length > 5 ? 'auto' : 'visible', paddingRight: group.rows.length > 5 ? 'clamp(4px, 1vw, 8px)' : '0' }}>
                     {group.rows.map(r => (
                       <li
                         key={r.id}

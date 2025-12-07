@@ -348,13 +348,6 @@ export default function App() {
               endDateStr={endDateStr}
               onTripStatusChange={handleTripStatusChange} 
             />
-
-            {currentTrip && (
-              <>
-                <ExpenseInput user={user} trip_id={currentTrip.id} startDateStr={startDateStr} endDateStr={endDateStr} expenseType="special" />
-                <Dashboard user={user} trip={currentTrip} startDateStr={startDateStr} endDateStr={endDateStr} onDateChange={(start, end) => { setStartDateStr(start); setEndDateStr(end); }} />
-              </>
-            )}
           </>
         )}
 
